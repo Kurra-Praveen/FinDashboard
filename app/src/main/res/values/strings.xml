@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">FinTrack</string>
+    <string name="permission_sms_title">SMS Permission Required</string>
+    <string name="permission_sms_description">FinTrack needs SMS permission to automatically detect financial transactions.</string>
+</resources>
