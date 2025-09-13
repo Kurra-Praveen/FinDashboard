@@ -28,7 +28,7 @@ sqlcipher-android = "2.2.3"
 coroutines = "1.8.1"
 
 # Charts & Visualization
-vico = "2.0.0-alpha.28"
+composecharts = "0.1.0"
 
 # Permissions
 accompanistPermissions = "0.32.0"
@@ -91,9 +91,7 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 
 # Charts
-vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico" }
-vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
-vico-core = { group = "com.patrykandpatrick.vico", name = "core", version.ref = "vico" }
+composecharts = { group = "io.github.ehsannarmani", name = "compose-charts", version.ref = "composecharts" }
 
 # Permissions
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanistPermissions" }
@@ -135,9 +133,7 @@ room = [
 ]
 
 charts = [
-    "vico-compose",
-    "vico-compose-m3",
-    "vico-core"
+    "composecharts"
 ]
 
 testing = [

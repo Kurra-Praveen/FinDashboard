@@ -14,10 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.presentation.ui.components.SpendingOverviewCard
 import com.kpr.fintrack.presentation.ui.components.CategorySpendingCard
 import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
+import com.kpr.fintrack.utils.extensions.formatCurrency
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,6 +27,7 @@ import java.math.BigDecimal
 fun DashboardScreen(
     onNavigateToTransactions: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToAnalytics: () -> Unit,
     onTransactionClick: (Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -116,6 +119,12 @@ fun DashboardScreen(
                             previousMonthComparison = uiState.previousMonthComparison
                         )
                     }
+                    item {
+                        AnalyticsPreviewCard(
+                            categoryData = uiState.topCategories,
+                            onViewAllAnalytics = onNavigateToAnalytics
+                        )
+                    }
 
                     if (uiState.topCategories.isNotEmpty()) {
                         item {
@@ -185,6 +194,80 @@ fun DashboardScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsPreviewCard(
+    categoryData: List<CategorySpendingData>,
+    onViewAllAnalytics: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Spending Analytics",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                TextButton(
+                    onClick = {
+                        android.util.Log.d("Analytics", "View Details clicked") // Debug log
+                        onViewAllAnalytics() // ✅ Call the function with parentheses
+                    }
+                ){
+                    Text("View Details")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Quick category preview
+            if (categoryData.isNotEmpty()) {
+                categoryData.take(3).forEach { category ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text =  Category.getDefaultCategories().find { x -> x.id==category.category.id}?.icon ?: "Unknown")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = Category.getDefaultCategories().find { x -> x.id==category.category.id}?.name ?: "Unknown",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                        Text(
+                            text = category.amount.formatCurrency(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = "No spending data available",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

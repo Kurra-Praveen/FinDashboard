@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.kpr.fintrack.presentation.ui.analytics.AnalyticsScreen
 import com.kpr.fintrack.presentation.ui.dashboard.DashboardScreen
 import com.kpr.fintrack.presentation.ui.transactions.TransactionsScreen
 import com.kpr.fintrack.presentation.ui.settings.SettingsScreen
@@ -16,6 +17,8 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object Transactions : Screen("transactions")
     object Settings : Screen("settings")
+
+    object Analytics : Screen("analytics")
     object TransactionDetail : Screen("transaction_detail/{transactionId}") {
         fun createRoute(transactionId: Long) = "transaction_detail/$transactionId"
     }
@@ -43,6 +46,19 @@ fun FinTrackNavigation(
                     // ✅ Add debug log here too
                     android.util.Log.d("Navigation", "Navigating to transaction: $transactionId")
                     navController.navigate("transaction_detail/$transactionId")
+                },
+                onNavigateToAnalytics = {
+                    // ✅ Add analytics navigation
+                    android.util.Log.d("Navigation", "Navigating to analytics")
+                    navController.navigate(Screen.Analytics.route)
+
+                }
+                    )
+        }
+        composable(Screen.Analytics.route) {
+            AnalyticsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -54,6 +70,13 @@ fun FinTrackNavigation(
                 },
                 onTransactionClick = { transactionId ->
                     navController.navigate(Screen.TransactionDetail.createRoute(transactionId))
+                }
+            )
+        }
+        composable("analytics") {
+            AnalyticsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

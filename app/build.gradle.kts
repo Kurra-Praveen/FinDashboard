@@ -112,6 +112,10 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.sqlcipher.support)
 
+//// Vico for Charts
+//    implementation(libs.vico.compose)
+//    implementation(libs.vico.core)
+//    implementation(libs.vico.compose.m3)
     // Work Manager
     implementation(libs.androidx.work.runtime.ktx)
 
