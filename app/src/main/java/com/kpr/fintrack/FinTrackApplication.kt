@@ -13,10 +13,12 @@ class FinTrackApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize SQLCipher
-        SQLiteDatabase.loadLibs(this)
-
-        Log.d("FinTrackApplication", "Application onCreate called")
-    // TODO: Initialize crash reporting, analytics if needed
+        // Initialize SQLCipher libraries early - CRITICAL for avoiding crashes
+        try {
+            SQLiteDatabase.loadLibs(this)
+            android.util.Log.d("FinTrackApplication", "SQLCipher libraries loaded successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("FinTrackApplication", "Failed to load SQLCipher libraries", e)
+        }
     }
 }

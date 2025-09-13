@@ -136,6 +136,10 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getUpiAppById(id: Long): UpiApp? {
         return upiAppDao.getUpiAppById(id)?.toDomainModel()
     }
+
+    override suspend fun getTransactionById(id: Long): Transaction? {
+        return transactionDao.getTransactionById(id)?.toDomainModel()
+    }
 }
 
 // Extension functions for entity conversion

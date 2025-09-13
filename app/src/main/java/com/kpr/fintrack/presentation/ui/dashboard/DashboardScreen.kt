@@ -25,6 +25,7 @@ import java.math.BigDecimal
 fun DashboardScreen(
     onNavigateToTransactions: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onTransactionClick: (Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -162,11 +163,13 @@ fun DashboardScreen(
                             }
                         }
 
-                        items(uiState.recentTransactions) { transaction ->
+                        items(uiState.recentTransactions,key = { transaction -> transaction.id }) { transaction ->
                             RecentTransactionItem(
                                 transaction = transaction,
                                 onClick = {
                                     // Navigate to transaction detail
+                                    android.util.Log.d("DashboardScreen", "Recent transaction clicked: ${transaction.id}")
+                                    onTransactionClick(transaction.id)
                                 }
                             )
                         }

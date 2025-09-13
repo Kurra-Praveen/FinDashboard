@@ -1,7 +1,6 @@
 package com.kpr.fintrack.di
 
 import android.content.Context
-import androidx.room.Room
 import com.kpr.fintrack.data.database.FinTrackDatabase
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
@@ -24,9 +23,6 @@ annotation class ApplicationScope
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-    init {
-        android.util.Log.d("DatabaseModule", "Module initialized")
-    }
 
     @Provides
     @Singleton
@@ -37,19 +33,28 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideDatabaseKeyProvider(@ApplicationContext context: Context): DatabaseKeyProvider {
-        return DatabaseKeyProvider(context)
-    }
-
-    @Provides
-    @Singleton
     fun provideFinTrackDatabase(
         @ApplicationContext context: Context,
         databaseKeyProvider: DatabaseKeyProvider,
         @ApplicationScope applicationScope: CoroutineScope
     ): FinTrackDatabase {
-        val passphrase = databaseKeyProvider.getDatabaseKey()
-        return FinTrackDatabase.create(context, passphrase, applicationScope)
+        return try {
+            android.util.Log.d("DatabaseModule", "Creating FinTrack database")
+            val passphrase = databaseKeyProvider.getDatabaseKey()
+            FinTrackDatabase.create(context, passphrase, applicationScope)
+        } catch (e: Exception) {
+            android.util.Log.e("DatabaseModule", "Database creation failed, attempting recovery", e)
+
+            // If database creation fails (corruption/wrong key), reset and try again
+            try {
+                databaseKeyProvider.clearKeyAndDatabase()
+                val newPassphrase = databaseKeyProvider.getDatabaseKey()
+                FinTrackDatabase.create(context, newPassphrase, applicationScope)
+            } catch (recoveryException: Exception) {
+                android.util.Log.e("DatabaseModule", "Database recovery failed", recoveryException)
+                throw recoveryException
+            }
+        }
     }
 
     @Provides
