@@ -3,12 +3,13 @@ package com.kpr.fintrack.utils.security
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class DatabaseKeyProvider @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
         init {
             android.util.Log.d("DatabaseKeyProvider", "Provider initialized")
@@ -48,4 +49,18 @@ class DatabaseKeyProvider @Inject constructor(
     companion object {
         private const val DATABASE_KEY = "database_key"
     }
+
+    // Add this method to your existing DatabaseKeyProvider class
+    fun clearKeyAndDatabase() {
+        android.util.Log.d("DatabaseKeyProvider", "Clearing key and database")
+        sharedPreferences.edit().remove(DATABASE_KEY).apply()
+
+        // Delete database file if it exists
+        val dbFile = context.getDatabasePath(com.kpr.fintrack.BuildConfig.DATABASE_NAME)
+        if (dbFile.exists()) {
+            val deleted = dbFile.delete()
+            android.util.Log.d("DatabaseKeyProvider", "Database file deleted: $deleted")
+        }
+    }
+
 }

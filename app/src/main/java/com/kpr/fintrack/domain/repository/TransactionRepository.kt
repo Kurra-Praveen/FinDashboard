@@ -33,6 +33,13 @@ interface TransactionRepository {
     // UPI App operations
     fun getAllUpiApps(): Flow<List<UpiApp>>
     suspend fun getUpiAppById(id: Long): UpiApp?
+
+    // Add to TransactionRepository interface
+    suspend fun getTransactionById(id: Long): Transaction?
+
+    // Add to TransactionRepositoryImpl
+
+
 }
 
 data class TransactionFilter(

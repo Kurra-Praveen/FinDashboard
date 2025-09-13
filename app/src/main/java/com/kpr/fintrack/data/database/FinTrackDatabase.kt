@@ -18,8 +18,8 @@ import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.UpiApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
-//import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
     entities = [
@@ -32,9 +32,6 @@ import net.sqlcipher.database.SupportFactory
 )
 @TypeConverters(Converters::class)
 abstract class FinTrackDatabase : RoomDatabase() {
-    init {
-        android.util.Log.d("FinTrackDatabase", "FinTrackDatabase instance created")
-    }
 
     abstract fun transactionDao(): TransactionDao
     abstract fun categoryDao(): CategoryDao
@@ -46,9 +43,13 @@ abstract class FinTrackDatabase : RoomDatabase() {
             passphrase: ByteArray,
             coroutineScope: CoroutineScope
         ): FinTrackDatabase {
-                android.util.Log.d("FinTrackDatabase", "create() called")
 
-            val supportFactory = SupportFactory(passphrase)
+            // Load SQLCipher libraries first
+            SQLiteDatabase.loadLibs(context)
+
+            // Create fresh SupportFactory - CRITICAL for avoiding passphrase cleared error
+            // Use false to disable automatic passphrase clearing
+            val supportFactory = SupportFactory(passphrase, null, false)
 
             return Room.databaseBuilder(
                 context,
@@ -59,13 +60,13 @@ abstract class FinTrackDatabase : RoomDatabase() {
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
-                            android.util.Log.d("FinTrackDatabase", "onCreate callback triggered")
-                        // Pre-populate database with default categories and UPI apps
+                        android.util.Log.d("FinTrackDatabase", "Database created, populating default data")
                         coroutineScope.launch {
-                            populateDefaultData(context, passphrase, coroutineScope)
+                            populateDefaultData(context, passphrase.copyOf(), coroutineScope)
                         }
                     }
                 })
+                .fallbackToDestructiveMigration() // For development
                 .build()
         }
 
@@ -74,35 +75,42 @@ abstract class FinTrackDatabase : RoomDatabase() {
             passphrase: ByteArray,
             coroutineScope: CoroutineScope
         ) {
-                android.util.Log.d("FinTrackDatabase", "populateDefaultData() called")
-            val database = create(context, passphrase, coroutineScope)
+            try {
+                val database = create(context, passphrase, coroutineScope)
 
-            // Insert default categories
-            val defaultCategories = Category.getDefaultCategories().map { category ->
-                CategoryEntity(
-                    id = category.id,
-                    name = category.name,
-                    icon = category.icon,
-                    color = category.color,
-                    isDefault = category.isDefault,
-                    keywords = category.keywords.joinToString(",")
-                )
-            }
-                android.util.Log.d("FinTrackDatabase", "Inserting default categories: ${defaultCategories.size}")
-            database.categoryDao().insertCategories(defaultCategories)
+                // Insert default categories
+                val defaultCategories = Category.getDefaultCategories().map { category ->
+                    CategoryEntity(
+                        id = category.id,
+                        name = category.name,
+                        icon = category.icon,
+                        color = category.color,
+                        isDefault = true,
+                        keywords = category.keywords.joinToString(",")
+                    )
+                }
+                database.categoryDao().insertCategories(defaultCategories)
 
-            // Insert default UPI apps
-            val defaultUpiApps = UpiApp.getDefaultUpiApps().map { upiApp ->
-                UpiAppEntity(
-                    id = upiApp.id,
-                    name = upiApp.name,
-                    packageName = upiApp.packageName,
-                    senderPattern = upiApp.senderPattern,
-                    icon = upiApp.icon
-                )
+                // Insert default UPI apps
+                val defaultUpiApps = UpiApp.getDefaultUpiApps().map { upiApp ->
+                    UpiAppEntity(
+                        id = upiApp.id,
+                        name = upiApp.name,
+                        packageName = upiApp.packageName,
+                        senderPattern = upiApp.senderPattern,
+                        icon = upiApp.icon
+                    )
+                }
+                database.upiAppDao().insertUpiApps(defaultUpiApps)
+
+                android.util.Log.d("FinTrackDatabase", "Default data populated successfully")
+
+            } catch (e: Exception) {
+                android.util.Log.e("FinTrackDatabase", "Error populating default data", e)
+            } finally {
+                // Clear passphrase from memory
+                passphrase.fill(0)
             }
-                android.util.Log.d("FinTrackDatabase", "Inserting default UPI apps: ${defaultUpiApps.size}")
-            database.upiAppDao().insertUpiApps(defaultUpiApps)
         }
     }
 }
