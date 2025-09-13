@@ -1,8 +1,13 @@
 package com.kpr.fintrack.domain.repository
 
+import com.kpr.fintrack.domain.model.AnalyticsSummary
 import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.domain.model.Category
+import com.kpr.fintrack.domain.model.CategorySpendingData
+import com.kpr.fintrack.domain.model.MonthlySpendingData
+import com.kpr.fintrack.domain.model.TopMerchantData
 import com.kpr.fintrack.domain.model.UpiApp
+import com.kpr.fintrack.domain.model.WeeklySpendingData
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -38,6 +43,12 @@ interface TransactionRepository {
     suspend fun getTransactionById(id: Long): Transaction?
 
     // Add to TransactionRepositoryImpl
+// Add to TransactionRepository interface
+    suspend fun getMonthlySpendingData(monthsBack: Int = 6): List<MonthlySpendingData>
+    suspend fun getCategorySpendingData(startDate: LocalDateTime, endDate: LocalDateTime): List<CategorySpendingData>
+    suspend fun getWeeklySpendingData(weeksBack: Int = 4): List<WeeklySpendingData>
+    suspend fun getTopMerchants(limit: Int = 10, startDate: LocalDateTime, endDate: LocalDateTime): List<TopMerchantData>
+    suspend fun getAnalyticsSummary(): AnalyticsSummary
 
 
 }

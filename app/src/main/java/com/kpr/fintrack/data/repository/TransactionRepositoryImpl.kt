@@ -6,15 +6,27 @@ import com.kpr.fintrack.data.database.dao.UpiAppDao
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import com.kpr.fintrack.data.database.entities.UpiAppEntity
+import com.kpr.fintrack.domain.model.AnalyticsSummary
 import com.kpr.fintrack.domain.model.Category
+import com.kpr.fintrack.domain.model.CategorySpendingData
+import com.kpr.fintrack.domain.model.MonthlySpendingData
+import com.kpr.fintrack.domain.model.TopMerchantData
 import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.domain.model.UpiApp
+import com.kpr.fintrack.domain.model.WeeklySpendingData
 import com.kpr.fintrack.domain.repository.TransactionFilter
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
+import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -140,6 +152,147 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getTransactionById(id: Long): Transaction? {
         return transactionDao.getTransactionById(id)?.toDomainModel()
     }
+
+    // Add to TransactionRepositoryImpl class
+    override suspend fun getMonthlySpendingData(monthsBack: Int): List<MonthlySpendingData> {
+        val currentMonth = YearMonth.now()
+        val monthlyData = mutableListOf<MonthlySpendingData>()
+
+        for (i in monthsBack downTo 0) {
+            val targetMonth = currentMonth.minusMonths(i.toLong())
+            val startDate = targetMonth.atDay(1).atStartOfDay()
+            val endDate = targetMonth.atEndOfMonth().atTime(23, 59, 59)
+
+            val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+
+            val totalSpent = transactions.filter { it.isDebit }.sumOf { it.amount }
+            val totalIncome = transactions.filter { !it.isDebit }.sumOf { it.amount }
+
+            monthlyData.add(
+                MonthlySpendingData(
+                    yearMonth = targetMonth,
+                    monthName = targetMonth.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.getDefault())),
+                    totalSpent = totalSpent,
+                    totalIncome = totalIncome,
+                    netAmount = totalIncome - totalSpent
+                )
+            )
+        }
+
+        return monthlyData
+    }
+
+    override suspend fun getCategorySpendingData(startDate: LocalDateTime, endDate: LocalDateTime): List<CategorySpendingData> {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+        val debitTransactions = transactions.filter { it.isDebit }
+        val totalSpent = debitTransactions.sumOf { it.amount }
+
+        return debitTransactions
+            .groupBy { it.categoryId }
+            .map { (category, categoryTransactions) ->
+                val categoryAmount = categoryTransactions.sumOf { it.amount }
+                val percentage = if (totalSpent > BigDecimal.ZERO) {
+                    (categoryAmount / totalSpent * BigDecimal(100)).toFloat()
+                } else 0f
+
+                CategorySpendingData(
+                    categoryName = Category.getDefaultCategories().find { x -> x.id==category}?.name ?: "Unknown",
+                    categoryIcon = Category.getDefaultCategories().find { x -> x.id==category}?.icon ?: "Unknown",
+                    amount = categoryAmount,
+                    percentage = percentage,
+                    transactionCount = categoryTransactions.size
+                )
+            }
+            .sortedByDescending { it.amount }
+    }
+
+    override suspend fun getWeeklySpendingData(weeksBack: Int): List<WeeklySpendingData> {
+        val currentWeek = LocalDate.now()
+        val weeklyData = mutableListOf<WeeklySpendingData>()
+
+        for (i in weeksBack downTo 0) {
+            val weekStart = currentWeek.minusWeeks(i.toLong()).with(DayOfWeek.MONDAY)
+            val weekEnd = weekStart.with(DayOfWeek.SUNDAY)
+
+            val startDateTime = weekStart.atStartOfDay()
+            val endDateTime = weekEnd.atTime(23, 59, 59)
+
+            val weekTransactions = transactionDao.getTransactionsByDateRange(startDateTime, endDateTime).first()
+            val weekSpending = weekTransactions.filter { it.isDebit }.sumOf { it.amount }
+
+            weeklyData.add(
+                WeeklySpendingData(
+                    weekNumber = i + 1,
+                    weekRange = "${weekStart.format(DateTimeFormatter.ofPattern("MMM d"))}-${weekEnd.dayOfMonth}",
+                    amount = weekSpending
+                )
+            )
+        }
+
+        return weeklyData.reversed()
+    }
+
+    override suspend fun getTopMerchants(limit: Int, startDate: LocalDateTime, endDate: LocalDateTime): List<TopMerchantData> {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+
+        return transactions
+            .filter { it.isDebit }
+            .groupBy { it.merchantName }
+            .map { (merchant, merchantTransactions) ->
+                TopMerchantData(
+                    merchantName = merchant,
+                    amount = merchantTransactions.sumOf { it.amount },
+                    transactionCount = merchantTransactions.size
+                )
+            }
+            .sortedByDescending { it.amount }
+            .take(limit)
+    }
+
+    override suspend fun getAnalyticsSummary(): AnalyticsSummary {
+        val currentMonth = YearMonth.now()
+        val startOfMonth = currentMonth.atDay(1).atStartOfDay()
+        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
+
+        return AnalyticsSummary(
+            monthlyData = getMonthlySpendingData(6),
+            categoryData = getCategorySpendingData(startOfMonth, endOfMonth),
+            weeklyData = getWeeklySpendingData(4),
+            topMerchants = getTopMerchants(5, startOfMonth, endOfMonth),
+            averageDailySpending = calculateAverageDailySpending(startOfMonth, endOfMonth),
+            highestSpendingDay = calculateHighestSpendingDay(startOfMonth, endOfMonth),
+            mostUsedCategory = findMostUsedCategory(startOfMonth, endOfMonth)
+        )
+    }
+
+    private suspend fun calculateAverageDailySpending(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+        val totalSpent = transactions.filter { it.isDebit }.sumOf { it.amount }
+        val daysDiff = ChronoUnit.DAYS.between(startDate.toLocalDate(), endDate.toLocalDate()) + 1
+
+        return if (daysDiff > 0) totalSpent / BigDecimal(daysDiff) else BigDecimal.ZERO
+    }
+
+    private suspend fun calculateHighestSpendingDay(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+
+        return transactions
+            .filter { it.isDebit }
+            .groupBy { it.date.toLocalDate() }
+            .maxByOrNull { it.value.sumOf { tx -> tx.amount } }
+            ?.value?.sumOf { it.amount } ?: BigDecimal.ZERO
+    }
+
+    private suspend fun findMostUsedCategory(startDate: LocalDateTime, endDate: LocalDateTime): String {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+
+        return transactions
+            .filter { it.isDebit }
+            .groupBy { Category.getDefaultCategories().find { x -> x.id==it.categoryId}?.name ?: "Unknown"}
+            .maxByOrNull { it.value.size }
+            ?.key ?: "No data"
+    }
+
 }
 
 // Extension functions for entity conversion
