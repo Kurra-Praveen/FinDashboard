@@ -20,7 +20,8 @@ data class Transaction(
     val isManuallyVerified: Boolean = false,
     val tags: List<String> = emptyList(),
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
+    val receiptImagePath:String? = null
 )
 
 enum class TransactionType {
