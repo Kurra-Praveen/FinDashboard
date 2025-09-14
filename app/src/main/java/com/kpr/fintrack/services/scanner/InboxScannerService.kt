@@ -103,7 +103,7 @@ class InboxScannerService : Service() {
             try {
                 secureLogger.i("INBOX_SCANNER", "Starting inbox scan")
 
-                val messages = smsDataSource.getAllSmsMessages()
+                val messages = smsDataSource.getAllSmsMessages().take(1000)
                 _scanProgress.value = ScanProgress(total = messages.size)
 
                 updateNotification(0, messages.size)

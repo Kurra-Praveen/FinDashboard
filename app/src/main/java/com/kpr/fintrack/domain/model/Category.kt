@@ -10,17 +10,111 @@ data class Category(
     val keywords: List<String> = emptyList()
 ) {
     companion object {
-        fun getDefaultCategories() = listOf(
-            Category(1, "Food & Dining", "🍽️", "#FF6B6B", keywords = listOf("restaurant", "food", "zomato", "swiggy", "dominos", "mcd", "kfc")),
-            Category(2, "Transportation", "🚗", "#4ECDC4", keywords = listOf("uber", "ola", "metro", "bus", "fuel", "petrol", "diesel")),
-            Category(3, "Shopping", "🛍️", "#45B7D1", keywords = listOf("amazon", "flipkart", "myntra", "mall", "store")),
-            Category(4, "Bills & Utilities", "💡", "#96CEB4", keywords = listOf("electricity", "water", "gas", "internet", "mobile", "recharge")),
-            Category(5, "Healthcare", "🏥", "#FECA57", keywords = listOf("hospital", "pharmacy", "doctor", "medicine", "medical")),
-            Category(6, "Entertainment", "🎬", "#FF9FF3", keywords = listOf("movie", "netflix", "spotify", "game", "book")),
-            Category(7, "Investment", "📈", "#54A0FF", keywords = listOf("mutual fund", "sip", "stock", "share", "investment")),
-            Category(8, "Transfer", "💸", "#5F27CD", keywords = listOf("transfer", "sent", "received")),
-            Category(9, "Cash Withdrawal", "🏧", "#00D2D3", keywords = listOf("atm", "withdrawal", "cash")),
-            Category(10, "Other", "📝", "#A55EEA", keywords = emptyList())
-        )
+        fun getDefaultCategories(): List<Category> {
+            return try {
+                listOf(
+                    Category(
+                        id = 1L,
+                        name = "Food & Dining",
+                        icon = "🍽️",
+                        color = "#FF6B6B",
+                        isDefault = true,
+                        keywords = listOf(
+                            "restaurant",
+                            "food",
+                            "dining",
+                            "cafe",
+                            "coffee",
+                            "swiggy",
+                            "zomato",
+                            "burger",
+                            "pizza"
+                        )
+                    ), Category(
+                        id = 2L,
+                        name = "Transportation",
+                        icon = "🚗",
+                        color = "#4ECDC4",
+                        isDefault = true,
+                        keywords = listOf(
+                            "fuel",
+                            "petrol",
+                            "diesel",
+                            "uber",
+                            "ola",
+                            "metro",
+                            "bus",
+                            "taxi",
+                            "transport"
+                        )
+                    ), Category(
+                        id = 3L,
+                        name = "Shopping",
+                        icon = "🛒",
+                        color = "#45B7D1",
+                        isDefault = true,
+                        keywords = listOf(
+                            "amazon", "flipkart", "mall", "shop", "store", "grocery", "supermarket"
+                        )
+                    ), Category(
+                        id = 4L,
+                        name = "Cash Withdrawal",
+                        icon = "🏧",
+                        color = "#96CEB4",
+                        isDefault = true,
+                        keywords = listOf("atm", "cash", "withdrawal", "bank")
+                    ), Category(
+                        id = 5L,
+                        name = "Income",
+                        icon = "💰",
+                        color = "#FFEAA7",
+                        isDefault = true,
+                        keywords = listOf(
+                            "salary", "income", "credit", "received", "deposit", "interest"
+                        )
+                    ), Category(
+                        id = 6L,
+                        name = "Bills & Utilities",
+                        icon = "💡",
+                        color = "#DDA0DD",
+                        isDefault = true,
+                        keywords = listOf(
+                            "electricity", "gas", "water", "internet", "mobile", "bill", "utility"
+                        )
+                    ), Category(
+                        id = 7L,
+                        name = "Healthcare",
+                        icon = "🏥",
+                        color = "#98D8C8",
+                        isDefault = true,
+                        keywords = listOf(
+                            "doctor", "hospital", "medicine", "pharmacy", "health", "medical"
+                        )
+                    ), Category(
+                        id = 8L,
+                        name = "Entertainment",
+                        icon = "🎬",
+                        color = "#F7DC6F",
+                        isDefault = true,
+                        keywords = listOf(
+                            "movie", "cinema", "netflix", "spotify", "game", "entertainment"
+                        )
+                    )
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("Category", "Error creating default categories", e)
+                // ✅ Return at least one category to prevent complete failure
+                listOf(
+                    Category(
+                        id = 1L,
+                        name = "General",
+                        icon = "💳",
+                        color = "#95A5A6",
+                        isDefault = true,
+                        keywords = listOf("general", "other", "misc")
+                    )
+                )
+            }
+        }
     }
 }

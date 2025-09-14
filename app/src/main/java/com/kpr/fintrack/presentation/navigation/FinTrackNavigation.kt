@@ -11,6 +11,7 @@ import com.kpr.fintrack.presentation.ui.analytics.AnalyticsScreen
 import com.kpr.fintrack.presentation.ui.dashboard.DashboardScreen
 import com.kpr.fintrack.presentation.ui.transactions.TransactionsScreen
 import com.kpr.fintrack.presentation.ui.settings.SettingsScreen
+import com.kpr.fintrack.presentation.ui.transaction.AddTransactionScreen
 import com.kpr.fintrack.presentation.ui.transaction.TransactionDetailScreen
 
 sealed class Screen(val route: String) {
@@ -52,11 +53,35 @@ fun FinTrackNavigation(
                     android.util.Log.d("Navigation", "Navigating to analytics")
                     navController.navigate(Screen.Analytics.route)
 
+                },
+                onAddTransaction = {
+                    navController.navigate("add_transaction")
                 }
                     )
         }
         composable(Screen.Analytics.route) {
             AnalyticsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable("add_transaction") {
+            AddTransactionScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(
+            route = "edit_transaction/{transactionId}",
+            arguments = listOf(
+                navArgument("transactionId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val transactionId = backStackEntry.arguments?.getLong("transactionId") ?: 0L
+            AddTransactionScreen(
+                transactionId = transactionId,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

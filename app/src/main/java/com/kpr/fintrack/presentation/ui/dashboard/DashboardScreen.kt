@@ -29,6 +29,7 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToAnalytics: () -> Unit,
     onTransactionClick: (Long) -> Unit,
+    onAddTransaction: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -54,16 +55,17 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    // TODO: Add manual transaction
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Transaction"
-                )
-            }
+            ExtendedFloatingActionButton(
+                onClick = onAddTransaction,
+                icon = {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add transaction"
+                    )
+                },
+                text = { Text("Add") },
+                containerColor = MaterialTheme.colorScheme.primary
+            )
         }
     ) { paddingValues ->
 
