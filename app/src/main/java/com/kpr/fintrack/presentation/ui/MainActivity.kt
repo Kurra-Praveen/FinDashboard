@@ -37,7 +37,9 @@ class MainActivity : ComponentActivity() {
                     val permissionsState = rememberMultiplePermissionsState(
                         permissions = listOf(
                             Manifest.permission.RECEIVE_SMS,
-                            Manifest.permission.READ_SMS
+                            Manifest.permission.READ_SMS,
+                            Manifest.permission.POST_NOTIFICATIONS,
+                            //Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE
                         )
                     )
 
