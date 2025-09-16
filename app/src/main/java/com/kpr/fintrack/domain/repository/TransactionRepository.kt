@@ -1,5 +1,6 @@
 package com.kpr.fintrack.domain.repository
 
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.model.AnalyticsSummary
 import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.domain.model.Category
@@ -16,6 +17,7 @@ interface TransactionRepository {
     fun getAllTransactions(): Flow<List<Transaction>>
     fun getTransactionsByDateRange(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<Transaction>>
     fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>>
+    fun getTransactionsByAccountId(accountId: Long): Flow<List<Transaction>>
     fun searchTransactions(query: String): Flow<List<Transaction>>
     fun getFilteredTransactions(filter: TransactionFilter): Flow<List<Transaction>>
     fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>>
@@ -39,6 +41,13 @@ interface TransactionRepository {
     fun getAllUpiApps(): Flow<List<UpiApp>>
     suspend fun getUpiAppById(id: Long): UpiApp?
 
+    // Account operations
+    fun getAllAccounts(): Flow<List<Account>>
+    suspend fun getAccountById(id: Long): Account?
+    suspend fun insertAccount(account: Account): Long
+    suspend fun updateAccount(account: Account)
+    suspend fun deleteAccount(account: Account)
+
     // Add to TransactionRepository interface
     suspend fun getTransactionById(id: Long): Transaction?
 
@@ -55,6 +64,7 @@ interface TransactionRepository {
 
 data class TransactionFilter(
     val categoryIds: List<Long>? = null,
+    val accountIds: List<Long>? = null,
     val startDate: LocalDateTime? = null,
     val endDate: LocalDateTime? = null,
     val minAmount: BigDecimal? = null,

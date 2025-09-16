@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.kpr.fintrack.presentation.ui.account.AccountsScreen
 import com.kpr.fintrack.presentation.ui.analytics.AnalyticsScreen
 import com.kpr.fintrack.presentation.ui.dashboard.DashboardScreen
 import com.kpr.fintrack.presentation.ui.transactions.TransactionsScreen
@@ -18,6 +19,7 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object Transactions : Screen("transactions")
     object Settings : Screen("settings")
+    object Accounts : Screen("accounts")
 
     object Analytics : Screen("analytics")
     object TransactionDetail : Screen("transaction_detail/{transactionId}") {
@@ -110,8 +112,14 @@ fun FinTrackNavigation(
             SettingsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToAccounts = {
+                     navController.navigate(Screen.Accounts.route)
                 }
             )
+        }
+        composable(Screen.Accounts.route) {
+            AccountsScreen()
         }
         composable(
                 route = "transaction_detail/{transactionId}",

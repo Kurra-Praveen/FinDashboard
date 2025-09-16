@@ -10,6 +10,7 @@ data class Transaction(
     val merchantName: String,
     val description: String,
     val category: Category,
+    val account: Account?,
     val date: LocalDateTime,
     val upiApp: UpiApp? = null,
     val accountNumber: String? = null,

@@ -20,15 +20,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
+import androidx.room.AutoMigration
+import com.kpr.fintrack.data.database.dao.AccountDao
+import com.kpr.fintrack.data.database.entities.AccountEntity
 
 @Database(
     entities = [
         TransactionEntity::class,
         CategoryEntity::class,
-        UpiAppEntity::class
+        UpiAppEntity::class,
+        AccountEntity::class
     ],
-    version = 1,
-    exportSchema = true
+    version = 2,
+    exportSchema = true,
+    autoMigrations = [
+        AutoMigration (from = 1, to = 2)
+    ]
 )
 @TypeConverters(Converters::class)
 abstract class FinTrackDatabase : RoomDatabase() {
@@ -36,6 +43,7 @@ abstract class FinTrackDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun categoryDao(): CategoryDao
     abstract fun upiAppDao(): UpiAppDao
+    abstract fun accountDao(): AccountDao
 
     companion object {
         fun create(

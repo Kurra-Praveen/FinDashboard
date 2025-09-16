@@ -1,11 +1,14 @@
 package com.kpr.fintrack.data.repository
 
+import com.kpr.fintrack.data.database.dao.AccountDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dao.UpiAppDao
+import com.kpr.fintrack.data.database.entities.AccountEntity
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import com.kpr.fintrack.data.database.entities.UpiAppEntity
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.model.AnalyticsSummary
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.CategorySpendingData
@@ -17,7 +20,7 @@ import com.kpr.fintrack.domain.model.WeeklySpendingData
 import com.kpr.fintrack.domain.repository.TransactionFilter
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.time.DayOfWeek
@@ -34,15 +37,16 @@ import javax.inject.Singleton
 class TransactionRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
     private val categoryDao: CategoryDao,
-    private val upiAppDao: UpiAppDao
+    private val upiAppDao: UpiAppDao,
+    private val accountDao: AccountDao
 ) : TransactionRepository {
-        init {
-            android.util.Log.d("TransactionRepositoryImpl", "Repository initialized")
-        }
+    init {
+        android.util.Log.d("TransactionRepositoryImpl", "Repository initialized")
+    }
 
     override fun getAllTransactions(): Flow<List<Transaction>> {
         return transactionDao.getAllTransactions().map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao, categoryDao, upiAppDao) }
         }
     }
 
@@ -51,25 +55,32 @@ class TransactionRepositoryImpl @Inject constructor(
         endDate: LocalDateTime
     ): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByDateRange(startDate, endDate).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao, categoryDao, upiAppDao) }
         }
     }
 
     override fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByCategory(categoryId).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao, categoryDao, upiAppDao) }
+        }
+    }
+
+    override fun getTransactionsByAccountId(accountId: Long): Flow<List<Transaction>> {
+        return transactionDao.getTransactionsByAccountId(accountId).map { entities ->
+            entities.map { it.toDomainModel(accountDao, categoryDao, upiAppDao) }
         }
     }
 
     override fun searchTransactions(query: String): Flow<List<Transaction>> {
         return transactionDao.searchTransactions(query).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao, categoryDao, upiAppDao) }
         }
     }
 
     override fun getFilteredTransactions(filter: TransactionFilter): Flow<List<Transaction>> {
         return transactionDao.getFilteredTransactions(
             categoryIds = filter.categoryIds,
+            accountIds = filter.accountIds,
             startDate = filter.startDate,
             endDate = filter.endDate,
             minAmount = filter.minAmount,
@@ -77,13 +88,13 @@ class TransactionRepositoryImpl @Inject constructor(
             isDebit = filter.isDebit,
             searchQuery = filter.searchQuery
         ).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao, categoryDao, upiAppDao) }
         }
     }
 
     override fun getRecentTransactions(limit: Int): Flow<List<Transaction>> {
         return transactionDao.getRecentTransactions(limit).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao, categoryDao, upiAppDao) }
         }
     }
 
@@ -104,7 +115,8 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getTransactionByReferenceId(referenceId: String): Transaction? {
-        return transactionDao.getTransactionByReferenceId(referenceId)?.toDomainModel()
+        return transactionDao.getTransactionByReferenceId(referenceId)
+            ?.toDomainModel(accountDao, categoryDao, upiAppDao)
     }
 
     override suspend fun getTotalSpending(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
@@ -149,11 +161,34 @@ class TransactionRepositoryImpl @Inject constructor(
         return upiAppDao.getUpiAppById(id)?.toDomainModel()
     }
 
-    override suspend fun getTransactionById(id: Long): Transaction? {
-        return transactionDao.getTransactionById(id)?.toDomainModel()
+    // Account operations
+    override fun getAllAccounts(): Flow<List<Account>> {
+        return accountDao.getAllAccounts().map { entities ->
+            entities.map { it.toDomain() }
+        }
     }
 
-    // Add to TransactionRepositoryImpl class
+    override suspend fun getAccountById(id: Long): Account? {
+        return accountDao.getAccountById(id).firstOrNull()?.toDomain()
+    }
+
+    override suspend fun insertAccount(account: Account): Long {
+        return accountDao.insertAccount(account.toEntity())
+    }
+
+    override suspend fun updateAccount(account: Account) {
+        accountDao.updateAccount(account.toEntity())
+    }
+
+    override suspend fun deleteAccount(account: Account) {
+        accountDao.deleteAccount(account.id)
+    }
+
+    override suspend fun getTransactionById(id: Long): Transaction? {
+        return transactionDao.getTransactionById(id)
+            ?.toDomainModel(accountDao, categoryDao, upiAppDao)
+    }
+
     override suspend fun getMonthlySpendingData(monthsBack: Int): List<MonthlySpendingData> {
         val currentMonth = YearMonth.now()
         val monthlyData = mutableListOf<MonthlySpendingData>()
@@ -163,7 +198,8 @@ class TransactionRepositoryImpl @Inject constructor(
             val startDate = targetMonth.atDay(1).atStartOfDay()
             val endDate = targetMonth.atEndOfMonth().atTime(23, 59, 59)
 
-            val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+            val transactions =
+                transactionDao.getTransactionsByDateRange(startDate, endDate).firstOrNull() ?: emptyList()
 
             val totalSpent = transactions.filter { it.isDebit }.sumOf { it.amount }
             val totalIncome = transactions.filter { !it.isDebit }.sumOf { it.amount }
@@ -171,7 +207,12 @@ class TransactionRepositoryImpl @Inject constructor(
             monthlyData.add(
                 MonthlySpendingData(
                     yearMonth = targetMonth,
-                    monthName = targetMonth.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.getDefault())),
+                    monthName = targetMonth.format(
+                        DateTimeFormatter.ofPattern(
+                            "MMM yyyy",
+                            Locale.getDefault()
+                        )
+                    ),
                     totalSpent = totalSpent,
                     totalIncome = totalIncome,
                     netAmount = totalIncome - totalSpent
@@ -182,8 +223,11 @@ class TransactionRepositoryImpl @Inject constructor(
         return monthlyData
     }
 
-    override suspend fun getCategorySpendingData(startDate: LocalDateTime, endDate: LocalDateTime): List<CategorySpendingData> {
-        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+    override suspend fun getCategorySpendingData(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<CategorySpendingData> {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).firstOrNull() ?: emptyList()
         val debitTransactions = transactions.filter { it.isDebit }
         val totalSpent = debitTransactions.sumOf { it.amount }
 
@@ -196,8 +240,10 @@ class TransactionRepositoryImpl @Inject constructor(
                 } else 0f
 
                 CategorySpendingData(
-                    categoryName = Category.getDefaultCategories().find { x -> x.id==category}?.name ?: "Unknown",
-                    categoryIcon = Category.getDefaultCategories().find { x -> x.id==category}?.icon ?: "Unknown",
+                    categoryName = Category.getDefaultCategories().find { x -> x.id == category }?.name
+                        ?: "Unknown",
+                    categoryIcon = Category.getDefaultCategories().find { x -> x.id == category }?.icon
+                        ?: "Unknown",
                     amount = categoryAmount,
                     percentage = percentage,
                     transactionCount = categoryTransactions.size
@@ -217,7 +263,8 @@ class TransactionRepositoryImpl @Inject constructor(
             val startDateTime = weekStart.atStartOfDay()
             val endDateTime = weekEnd.atTime(23, 59, 59)
 
-            val weekTransactions = transactionDao.getTransactionsByDateRange(startDateTime, endDateTime).first()
+            val weekTransactions =
+                transactionDao.getTransactionsByDateRange(startDateTime, endDateTime).firstOrNull() ?: emptyList()
             val weekSpending = weekTransactions.filter { it.isDebit }.sumOf { it.amount }
 
             weeklyData.add(
@@ -232,8 +279,12 @@ class TransactionRepositoryImpl @Inject constructor(
         return weeklyData.reversed()
     }
 
-    override suspend fun getTopMerchants(limit: Int, startDate: LocalDateTime, endDate: LocalDateTime): List<TopMerchantData> {
-        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+    override suspend fun getTopMerchants(
+        limit: Int,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TopMerchantData> {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).firstOrNull() ?: emptyList()
 
         return transactions
             .filter { it.isDebit }
@@ -265,16 +316,22 @@ class TransactionRepositoryImpl @Inject constructor(
         )
     }
 
-    private suspend fun calculateAverageDailySpending(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
-        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+    private suspend fun calculateAverageDailySpending(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): BigDecimal {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).firstOrNull() ?: emptyList()
         val totalSpent = transactions.filter { it.isDebit }.sumOf { it.amount }
         val daysDiff = ChronoUnit.DAYS.between(startDate.toLocalDate(), endDate.toLocalDate()) + 1
 
         return if (daysDiff > 0) totalSpent / BigDecimal(daysDiff) else BigDecimal.ZERO
     }
 
-    private suspend fun calculateHighestSpendingDay(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
-        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+    private suspend fun calculateHighestSpendingDay(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): BigDecimal {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).firstOrNull() ?: emptyList()
 
         return transactions
             .filter { it.isDebit }
@@ -283,12 +340,18 @@ class TransactionRepositoryImpl @Inject constructor(
             ?.value?.sumOf { it.amount } ?: BigDecimal.ZERO
     }
 
-    private suspend fun findMostUsedCategory(startDate: LocalDateTime, endDate: LocalDateTime): String {
-        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+    private suspend fun findMostUsedCategory(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): String {
+        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).firstOrNull() ?: emptyList()
 
         return transactions
             .filter { it.isDebit }
-            .groupBy { Category.getDefaultCategories().find { x -> x.id==it.categoryId}?.name ?: "Unknown"}
+            .groupBy {
+                Category.getDefaultCategories().find { x -> x.id == it.categoryId }?.name
+                    ?: "Unknown"
+            }
             .maxByOrNull { it.value.size }
             ?.key ?: "No data"
     }
@@ -296,10 +359,15 @@ class TransactionRepositoryImpl @Inject constructor(
 }
 
 // Extension functions for entity conversion
-private suspend fun TransactionEntity.toDomainModel(): Transaction {
-    // Note: In a real implementation, you'd want to fetch the category and upiApp from their DAOs
-    val defaultCategory = Category.getDefaultCategories().find { it.id == this.categoryId }
-        ?: Category.getDefaultCategories().last() // Default to "Other"
+private suspend fun TransactionEntity.toDomainModel(
+    accountDao: AccountDao,
+    categoryDao: CategoryDao,
+    upiAppDao: UpiAppDao
+): Transaction {
+    val category = categoryDao.getCategoryById(categoryId)?.toDomainModel()
+        ?: Category.getDefaultCategories().last()
+    val upiApp = upiAppId?.let { upiAppDao.getUpiAppById(it)?.toDomainModel() }
+    val account = accountId?.let { accountDao.getAccountById(it).firstOrNull()?.toDomain() }
 
     return Transaction(
         id = id,
@@ -307,9 +375,10 @@ private suspend fun TransactionEntity.toDomainModel(): Transaction {
         isDebit = isDebit,
         merchantName = merchantName,
         description = description,
-        category = defaultCategory,
+        category = category,
+        account = account,
         date = date,
-        upiApp = null, // TODO: Fetch from UpiAppDao
+        upiApp = upiApp,
         accountNumber = accountNumber,
         referenceId = referenceId,
         smsBody = smsBody,
@@ -330,6 +399,7 @@ private fun Transaction.toEntity(): TransactionEntity {
         merchantName = merchantName,
         description = description,
         categoryId = category.id,
+        accountId = account?.id,
         date = date,
         upiAppId = upiApp?.id,
         accountNumber = accountNumber,
@@ -375,5 +445,27 @@ private fun UpiAppEntity.toDomainModel(): UpiApp {
         packageName = packageName,
         senderPattern = senderPattern,
         icon = icon
+    )
+}
+
+private fun AccountEntity.toDomain(): Account {
+    return Account(
+        id = id,
+        name = name,
+        accountNumber = accountNumber,
+        type = type,
+        balance = balance,
+        isDefault = isDefault
+    )
+}
+
+private fun Account.toEntity(): AccountEntity {
+    return AccountEntity(
+        id = id,
+        name = name,
+        accountNumber = accountNumber,
+        type = type,
+        balance = balance,
+        isDefault = isDefault
     )
 }

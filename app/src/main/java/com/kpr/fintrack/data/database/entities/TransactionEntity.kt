@@ -12,6 +12,7 @@ import java.time.LocalDateTime
     indices = [
         Index(value = ["date"]),
         Index(value = ["categoryId"]),
+        Index(value = ["accountId"]),
         Index(value = ["merchantName"]),
         Index(value = ["isDebit"]),
         Index(value = ["referenceId"], unique = true)
@@ -22,6 +23,12 @@ import java.time.LocalDateTime
             parentColumns = ["id"],
             childColumns = ["categoryId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
@@ -33,6 +40,7 @@ data class TransactionEntity(
     val merchantName: String,
     val description: String,
     val categoryId: Long,
+    val accountId: Long?,
     val date: LocalDateTime,
     val upiAppId: Long? = null,
     val accountNumber: String? = null,

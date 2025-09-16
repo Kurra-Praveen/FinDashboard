@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToAccounts: () -> Unit,
     modifier: Modifier = Modifier
 ) {
         android.util.Log.d("SettingsScreen", "Composable entered")
@@ -54,6 +55,14 @@ fun SettingsScreen(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            item {
+                SettingsItem(
+                    title = "Accounts",
+                    subtitle = "Manage your accounts",
+                    icon = Icons.Default.AccountBalance,
+                    onClick = onNavigateToAccounts
                 )
             }
 
