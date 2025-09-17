@@ -10,8 +10,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kpr.fintrack.domain.model.Transaction
-import com.kpr.fintrack.utils.formatAsCurrency
-import com.kpr.fintrack.utils.formatDate
+import com.kpr.fintrack.utils.FormatUtils.formatAsCurrency
+import com.kpr.fintrack.utils.FormatUtils.formatDate
 import java.time.format.DateTimeFormatter
 
 @Composable

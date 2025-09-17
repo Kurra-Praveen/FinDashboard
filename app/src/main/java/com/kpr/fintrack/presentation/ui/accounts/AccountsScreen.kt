@@ -19,7 +19,7 @@ import com.kpr.fintrack.presentation.ui.components.AccountItem
 import com.kpr.fintrack.presentation.ui.components.EmptyStateMessage
 import com.kpr.fintrack.presentation.ui.theme.Green
 import com.kpr.fintrack.presentation.ui.theme.Red
-import com.kpr.fintrack.presentation.ui.utils.formatAsCurrency
+import com.kpr.fintrack.utils.FormatUtils.formatAsCurrency
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)

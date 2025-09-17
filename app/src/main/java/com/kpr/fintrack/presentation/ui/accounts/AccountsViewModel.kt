@@ -75,7 +75,9 @@ class AccountsViewModel @Inject constructor(
     private fun loadAccountAnalytics() {
         viewModelScope.launch {
             val accounts = _uiState.value.accounts
-            if (accounts.isEmpty()) return
+            if (accounts.isEmpty()) {
+                return@launch
+            }
             
             transactionRepository.getAllTransactions()
                 .catch { e ->
@@ -90,14 +92,14 @@ class AccountsViewModel @Inject constructor(
                         
                         // Calculate inflows (income)
                         val totalInflow = accountTransactions
-                            .filter { it.type == TransactionType.INCOME }
+                            .filter { !it.isDebit }
                             .fold(BigDecimal.ZERO) { acc, transaction -> 
                                 acc.add(transaction.amount) 
                             }
                             
                         // Calculate outflows (expense)
                         val totalOutflow = accountTransactions
-                            .filter { it.type == TransactionType.EXPENSE }
+                            .filter { it.isDebit }
                             .fold(BigDecimal.ZERO) { acc, transaction -> 
                                 acc.add(transaction.amount) 
                             }

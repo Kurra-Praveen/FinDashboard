@@ -36,15 +36,14 @@ fun AccountSummaryCard(
                     fontWeight = FontWeight.Bold
                 )
                 
-                Chip(
+                AssistChip(
                     onClick = { /* No action */ },
-                    colors = ChipDefaults.chipColors(
+                    colors = AssistChipDefaults.assistChipColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                ) {
-                    Text(account.accountType.name)
-                }
+                    ),
+                    label = { Text(account.accountType.name) }
+                )
             }
             
             Spacer(modifier = Modifier.height(8.dp))

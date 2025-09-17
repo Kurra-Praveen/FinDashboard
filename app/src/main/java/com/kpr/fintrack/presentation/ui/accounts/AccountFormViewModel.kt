@@ -58,7 +58,7 @@ class AccountFormViewModel @Inject constructor(
                             bankName = account.bankName,
                             accountNumber = account.accountNumber,
                             currentBalance = account.currentBalance.toString(),
-                            description = account.description ?: "",
+                            description = "",
                             color = account.color,
                             isActive = account.isActive,
                             isLoading = false
