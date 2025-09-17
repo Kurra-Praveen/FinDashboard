@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kpr.fintrack.domain.model.AccountType
+import com.kpr.fintrack.domain.model.Account
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,7 +108,7 @@ fun AccountFormScreen(
                             expanded = uiState.isAccountTypeDropdownExpanded,
                             onDismissRequest = { viewModel.setAccountTypeDropdownExpanded(false) }
                         ) {
-                            AccountType.values().forEach { accountType ->
+                            Account.AccountType.values().forEach { accountType ->
                                 DropdownMenuItem(
                                     text = { Text(accountType.name) },
                                     onClick = {

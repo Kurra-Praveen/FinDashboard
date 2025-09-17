@@ -69,7 +69,7 @@ class AccountDetailViewModel @Inject constructor(
     fun deleteAccount() {
         viewModelScope.launch {
             _uiState.value.account?.let { account ->
-                accountRepository.deleteAccount(account.id)
+                accountRepository.deleteAccount(account)
             }
         }
     }

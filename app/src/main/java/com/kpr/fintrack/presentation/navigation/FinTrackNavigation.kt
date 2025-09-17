@@ -23,71 +23,15 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object Analytics : Screen("analytics")
     object Accounts : Screen("accounts")
+    object AddAccount : Screen("add_account")
     object TransactionDetail : Screen("transaction_detail/{transactionId}") {
         fun createRoute(transactionId: Long) = "transaction_detail/$transactionId"
     }
     object AccountDetail : Screen("account_detail/{accountId}") {
         fun createRoute(accountId: Long) = "account_detail/$accountId"
     }
-    
-    // Account screens
-    composable(Screen.Accounts.route) {
-        AccountsScreen(
-            onNavigateBack = {
-                navController.popBackStack()
-            },
-            onAccountClick = { accountId ->
-                navController.navigate(Screen.AccountDetail.createRoute(accountId))
-            },
-            onAddAccount = {
-                navController.navigate("add_account")
-            }
-        )
-    }
-    
-    composable(
-        route = Screen.AccountDetail.route,
-        arguments = listOf(
-            navArgument("accountId") {
-                type = NavType.LongType
-            }
-        )
-    ) { backStackEntry ->
-        val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
-        AccountDetailScreen(
-            accountId = accountId,
-            onNavigateBack = {
-                navController.popBackStack()
-            },
-            onEditAccount = { id ->
-                navController.navigate("edit_account/$id")
-            }
-        )
-    }
-    
-    composable("add_account") {
-        AccountFormScreen(
-            onNavigateBack = {
-                navController.popBackStack()
-            }
-        )
-    }
-    
-    composable(
-        route = "edit_account/{accountId}",
-        arguments = listOf(
-            navArgument("accountId") {
-                type = NavType.LongType
-            }
-        )
-    ) { backStackEntry ->
-        val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
-        AccountFormScreen(
-            accountId = accountId,
-            onNavigateBack = {
-                navController.popBackStack()
-            }
-        )
+    object EditAccount : Screen("edit_account/{accountId}") {
+        fun createRoute(accountId: Long) = "edit_account/$accountId"
     }
 }
 
@@ -197,6 +141,66 @@ fun FinTrackNavigation(
                     navController.popBackStack()
                 }
             )
-    }
+        }
+        
+        // Account screens
+        composable(Screen.Accounts.route) {
+            AccountsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onAccountClick = { accountId ->
+                    navController.navigate(Screen.AccountDetail.createRoute(accountId))
+                },
+                onAddAccount = {
+                    navController.navigate(Screen.AddAccount.route)
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.AccountDetail.route,
+            arguments = listOf(
+                navArgument("accountId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
+            AccountDetailScreen(
+                accountId = accountId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onEditAccount = { id ->
+                    navController.navigate(Screen.EditAccount.createRoute(id))
+                }
+            )
+        }
+        
+        composable(Screen.AddAccount.route) {
+            AccountFormScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.EditAccount.route,
+            arguments = listOf(
+                navArgument("accountId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
+            AccountFormScreen(
+                accountId = accountId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }

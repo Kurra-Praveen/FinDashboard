@@ -16,6 +16,7 @@ interface TransactionRepository {
     fun getAllTransactions(): Flow<List<Transaction>>
     fun getTransactionsByDateRange(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<Transaction>>
     fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>>
+    fun getTransactionsByAccountId(accountId: Long): Flow<List<Transaction>>
     fun searchTransactions(query: String): Flow<List<Transaction>>
     fun getFilteredTransactions(filter: TransactionFilter): Flow<List<Transaction>>
     fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>>

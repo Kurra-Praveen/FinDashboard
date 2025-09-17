@@ -1,8 +1,10 @@
 package com.kpr.fintrack.data.repository
 
+import com.kpr.fintrack.data.database.dao.AccountDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dao.UpiAppDao
+import kotlinx.coroutines.flow.first
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import com.kpr.fintrack.data.database.entities.UpiAppEntity
@@ -34,7 +36,8 @@ import javax.inject.Singleton
 class TransactionRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
     private val categoryDao: CategoryDao,
-    private val upiAppDao: UpiAppDao
+    private val upiAppDao: UpiAppDao,
+    private val accountDao: AccountDao
 ) : TransactionRepository {
         init {
             android.util.Log.d("TransactionRepositoryImpl", "Repository initialized")
@@ -57,6 +60,12 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByCategory(categoryId).map { entities ->
+            entities.map { it.toDomainModel() }
+        }
+    }
+    
+    override fun getTransactionsByAccountId(accountId: Long): Flow<List<Transaction>> {
+        return transactionDao.getTransactionsByAccountId(accountId).map { entities ->
             entities.map { it.toDomainModel() }
         }
     }

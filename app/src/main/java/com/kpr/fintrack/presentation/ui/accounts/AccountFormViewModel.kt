@@ -3,7 +3,6 @@ package com.kpr.fintrack.presentation.ui.accounts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kpr.fintrack.domain.model.Account
-import com.kpr.fintrack.domain.model.AccountType
 import com.kpr.fintrack.domain.repository.AccountRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +16,7 @@ data class AccountFormUiState(
     val id: Long = 0,
     val name: String = "",
     val nameError: String? = null,
-    val accountType: AccountType = AccountType.SAVINGS,
+    val accountType: Account.AccountType = Account.AccountType.SAVINGS,
     val isAccountTypeDropdownExpanded: Boolean = false,
     val bankName: String = "",
     val bankNameError: String? = null,
@@ -81,7 +80,7 @@ class AccountFormViewModel @Inject constructor(
         validateForm()
     }
 
-    fun updateAccountType(accountType: AccountType) {
+    fun updateAccountType(accountType: Account.AccountType) {
         _uiState.update { it.copy(accountType = accountType) }
         validateForm()
     }
@@ -155,10 +154,9 @@ class AccountFormViewModel @Inject constructor(
                     accountType = currentState.accountType,
                     bankName = currentState.bankName,
                     accountNumber = currentState.accountNumber,
-                    currentBalance = currentState.currentBalance.toDoubleOrNull() ?: 0.0,
-                    description = currentState.description.takeIf { it.isNotBlank() },
-                    color = currentState.color,
-                    isActive = currentState.isActive
+                    currentBalance = java.math.BigDecimal(currentState.currentBalance),
+                    isActive = currentState.isActive,
+                    color = currentState.color
                 )
                 
                 if (currentState.id > 0) {
