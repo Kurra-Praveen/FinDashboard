@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.ForeignKey
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import com.kpr.fintrack.data.database.entities.AccountEntity
 
 @Entity(
     tableName = "transactions",
@@ -14,7 +15,8 @@ import java.time.LocalDateTime
         Index(value = ["categoryId"]),
         Index(value = ["merchantName"]),
         Index(value = ["isDebit"]),
-        Index(value = ["referenceId"], unique = true)
+        Index(value = ["referenceId"], unique = true),
+        Index(value = ["accountId"])
     ],
     foreignKeys = [
         ForeignKey(
@@ -22,6 +24,12 @@ import java.time.LocalDateTime
             parentColumns = ["id"],
             childColumns = ["categoryId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = AccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ]
 )
@@ -35,6 +43,7 @@ data class TransactionEntity(
     val categoryId: Long,
     val date: LocalDateTime,
     val upiAppId: Long? = null,
+    val accountId: Long? = null,
     val accountNumber: String? = null,
     val referenceId: String? = null,
     val smsBody: String,

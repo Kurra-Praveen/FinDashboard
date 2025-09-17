@@ -8,9 +8,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import android.content.Context
 import com.kpr.fintrack.BuildConfig
 import com.kpr.fintrack.data.database.converters.Converters
+import com.kpr.fintrack.data.database.dao.AccountDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dao.UpiAppDao
+import com.kpr.fintrack.data.database.entities.AccountEntity
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import com.kpr.fintrack.data.database.entities.UpiAppEntity
@@ -25,9 +27,10 @@ import net.sqlcipher.database.SupportFactory
     entities = [
         TransactionEntity::class,
         CategoryEntity::class,
-        UpiAppEntity::class
+        UpiAppEntity::class,
+        AccountEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -36,6 +39,7 @@ abstract class FinTrackDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun categoryDao(): CategoryDao
     abstract fun upiAppDao(): UpiAppDao
+    abstract fun accountDao(): AccountDao
 
     companion object {
         fun create(

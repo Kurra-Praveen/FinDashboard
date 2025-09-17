@@ -71,4 +71,15 @@ object DatabaseModule {
     fun provideUpiAppDao(database: FinTrackDatabase): UpiAppDao {
         return database.upiAppDao()
     }
+    
+    @Provides
+    fun provideAccountDao(database: FinTrackDatabase): AccountDao {
+        return database.accountDao()
+    }
+    
+    @Singleton
+    @Provides
+    fun provideAccountRepository(accountRepositoryImpl: AccountRepositoryImpl): AccountRepository {
+        return accountRepositoryImpl
+    }
 }

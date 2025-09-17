@@ -12,11 +12,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kpr.fintrack.presentation.navigation.FinTrackNavigation
+import com.kpr.fintrack.presentation.navigation.Screen
 import com.kpr.fintrack.presentation.theme.FinTrackTheme
+import com.kpr.fintrack.presentation.ui.components.BottomNavBar
 import com.kpr.fintrack.presentation.ui.components.PermissionRequestScreen
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -67,9 +71,39 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun FinTrackApp() {
     val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route ?: Screen.Dashboard.route
+    
+    // Check if current screen is a main screen that should show bottom navigation
+    val showBottomNav = currentRoute in listOf(
+        Screen.Dashboard.route,
+        Screen.Transactions.route,
+        Screen.Accounts.route,
+        Screen.Analytics.route
+    )
 
     Scaffold(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        bottomBar = {
+            if (showBottomNav) {
+                BottomNavBar(
+                    currentRoute = currentRoute,
+                    onNavigate = { route ->
+                        navController.navigate(route) {
+                            // Pop up to the start destination of the graph to avoid building up
+                            // a large stack of destinations
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            // Avoid multiple copies of the same destination when reselecting the same item
+                            launchSingleTop = true
+                            // Restore state when reselecting a previously selected item
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+        }
     ) { innerPadding ->
         FinTrackNavigation(
             navController = navController,

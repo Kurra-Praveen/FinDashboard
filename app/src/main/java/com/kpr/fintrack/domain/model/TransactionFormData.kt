@@ -12,6 +12,7 @@ data class TransactionFormData(
     val date: LocalDateTime = LocalDateTime.now(),
     val isDebit: Boolean = true,
     val upiApp: UpiApp? = null,
+    val account: Account? = null,
     val receiptImagePath: String? = null,
     val tags: List<String> = emptyList(),
     val isManuallyVerified: Boolean = true
@@ -26,7 +27,8 @@ data class TransactionFormData(
             category = category,
             date = date,
             upiApp = upiApp,
-            accountNumber = null,
+            account = account,
+            accountNumber = account?.accountNumber,
             referenceId = "MANUAL_${System.currentTimeMillis()}",
             smsBody = "Manual entry: $description",
             sender = "Manual",
@@ -50,6 +52,7 @@ data class TransactionFormData(
                 date = transaction.date,
                 isDebit = transaction.isDebit,
                 upiApp = transaction.upiApp,
+                account = transaction.account,
                 receiptImagePath = transaction.receiptImagePath,
                 tags = transaction.tags,
                 isManuallyVerified = transaction.isManuallyVerified

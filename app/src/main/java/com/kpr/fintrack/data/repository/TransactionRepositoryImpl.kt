@@ -300,6 +300,11 @@ private suspend fun TransactionEntity.toDomainModel(): Transaction {
     // Note: In a real implementation, you'd want to fetch the category and upiApp from their DAOs
     val defaultCategory = Category.getDefaultCategories().find { it.id == this.categoryId }
         ?: Category.getDefaultCategories().last() // Default to "Other"
+    
+    // Get account if accountId is not null
+    val account = accountId?.let { id ->
+        accountDao.getAccountById(id).first()?.toDomain()
+    }
 
     return Transaction(
         id = id,
@@ -310,6 +315,7 @@ private suspend fun TransactionEntity.toDomainModel(): Transaction {
         category = defaultCategory,
         date = date,
         upiApp = null, // TODO: Fetch from UpiAppDao
+        account = account,
         accountNumber = accountNumber,
         referenceId = referenceId,
         smsBody = smsBody,
@@ -332,6 +338,7 @@ private fun Transaction.toEntity(): TransactionEntity {
         categoryId = category.id,
         date = date,
         upiAppId = upiApp?.id,
+        accountId = account?.id,
         accountNumber = accountNumber,
         referenceId = referenceId,
         smsBody = smsBody,
