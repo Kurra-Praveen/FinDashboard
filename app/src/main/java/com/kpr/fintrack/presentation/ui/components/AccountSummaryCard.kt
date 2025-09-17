@@ -72,23 +72,8 @@ fun AccountSummaryCard(
                 )
             }
             
-            if (account.description?.isNotBlank() == true) {
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Description section
-                Column {
-                    Text(
-                        text = "Description",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    Text(
-                        text = account.description,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
+            // Note section if needed in the future
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

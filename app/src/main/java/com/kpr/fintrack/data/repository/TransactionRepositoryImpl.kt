@@ -312,9 +312,7 @@ private suspend fun TransactionEntity.toDomainModel(): Transaction {
     
     // Get account if accountId is not null
     val account = accountId?.let { id ->
-        accountDao.getAccountById(id).first()?.let { accountEntity ->
-            accountEntity.toDomainModel()
-        }
+        accountDao.getAccountById(id).first()?.toDomain()
     }
 
     return Transaction(

@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kpr.fintrack.presentation.ui.components.AccountItem
 import com.kpr.fintrack.presentation.ui.components.EmptyStateMessage
-import com.kpr.fintrack.presentation.ui.theme.Green
-import com.kpr.fintrack.presentation.ui.theme.Red
+import com.kpr.fintrack.presentation.theme.Green
+import com.kpr.fintrack.presentation.theme.Red
 import com.kpr.fintrack.utils.FormatUtils.formatAsCurrency
 import java.math.BigDecimal
 
