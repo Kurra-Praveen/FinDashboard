@@ -1,18 +1,22 @@
 package com.kpr.fintrack.data.repository
 
 import com.kpr.fintrack.data.database.dao.AccountDao
+import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.entities.AccountEntity
 import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.repository.AccountRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AccountRepositoryImpl @Inject constructor(
-    private val accountDao: AccountDao
+    private val accountDao: AccountDao,
+    private val transactionDao: TransactionDao
 ) : AccountRepository {
 
     init {
@@ -79,6 +83,24 @@ class AccountRepositoryImpl @Inject constructor(
 
     override suspend fun getAccountCount(): Int {
         return accountDao.getAccountCount()
+    }
+
+    override suspend fun getAccountMonthlyAnalytics(accountId: Long, yearMonth: YearMonth): Account.MonthlyAnalytics {
+        val startOfMonth = yearMonth.atDay(1).atStartOfDay()
+        val endOfMonth = yearMonth.atEndOfMonth().atTime(23, 59, 59)
+        
+        val transactions = transactionDao.getTransactionsByAccountIdAndDateRange(accountId, startOfMonth, endOfMonth)
+        
+        val totalInflow = transactions.filter { !it.isDebit }.sumOf { it.amount }
+        val totalOutflow = transactions.filter { it.isDebit }.sumOf { it.amount }
+        val netFlow = totalInflow.subtract(totalOutflow)
+        
+        return Account.MonthlyAnalytics(
+            totalInflow = totalInflow,
+            totalOutflow = totalOutflow,
+            netFlow = netFlow,
+            transactionCount = transactions.size
+        )
     }
 
     private fun AccountEntity.toDomain(): Account {

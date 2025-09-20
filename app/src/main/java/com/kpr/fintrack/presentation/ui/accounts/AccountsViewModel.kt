@@ -14,20 +14,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.time.YearMonth
 import javax.inject.Inject
 
 data class AccountsUiState(
     val accounts: List<Account> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
-    val totalBalance: BigDecimal = BigDecimal.ZERO,
-    val accountSummaries: Map<Long, AccountSummary> = emptyMap()
-)
-
-data class AccountSummary(
     val totalInflow: BigDecimal = BigDecimal.ZERO,
     val totalOutflow: BigDecimal = BigDecimal.ZERO,
-    val netFlow: BigDecimal = BigDecimal.ZERO
+    val netFlow: BigDecimal = BigDecimal.ZERO,
+    val accountAnalytics: Map<Long, Account.MonthlyAnalytics> = emptyMap()
 )
 
 @HiltViewModel
@@ -41,7 +38,6 @@ class AccountsViewModel @Inject constructor(
 
     init {
         loadAccounts()
-        loadAccountAnalytics()
     }
 
     fun loadAccounts() {
@@ -56,69 +52,47 @@ class AccountsViewModel @Inject constructor(
                     )
                 }
                 .collect { accounts ->
-                    val totalBalance = accounts.fold(BigDecimal.ZERO) { acc, account ->
-                        acc.add(account.currentBalance)
-                    }
-                    
                     _uiState.value = _uiState.value.copy(
                         accounts = accounts,
-                        totalBalance = totalBalance,
                         isLoading = false
                     )
                     
-                    // Load transaction data for each account
-                    loadAccountAnalytics()
+                    // Load monthly analytics for each account
+                    loadMonthlyAnalytics(accounts)
                 }
         }
     }
     
-    private fun loadAccountAnalytics() {
+    private fun loadMonthlyAnalytics(accounts: List<Account>) {
         viewModelScope.launch {
-            val accounts = _uiState.value.accounts
             if (accounts.isEmpty()) {
                 return@launch
             }
             
-            transactionRepository.getAllTransactions()
-                .catch { e ->
-                    _uiState.value = _uiState.value.copy(
-                        error = e.message ?: "Failed to load transaction data"
-                    )
+            val currentMonth = YearMonth.now()
+            val accountAnalytics = mutableMapOf<Long, Account.MonthlyAnalytics>()
+            var totalInflow = BigDecimal.ZERO
+            var totalOutflow = BigDecimal.ZERO
+            
+            accounts.forEach { account ->
+                try {
+                    val analytics = accountRepository.getAccountMonthlyAnalytics(account.id, currentMonth)
+                    accountAnalytics[account.id] = analytics
+                    totalInflow = totalInflow.add(analytics.totalInflow)
+                    totalOutflow = totalOutflow.add(analytics.totalOutflow)
+                } catch (e: Exception) {
+                    android.util.Log.e("AccountsViewModel", "Failed to load analytics for account ${account.id}", e)
                 }
-                .collect { transactions ->
-                    // Group transactions by account
-                    val accountSummaries = accounts.associate { account ->
-                        val accountTransactions = transactions.filter { it.account?.id == account.id }
-                        
-                        // Calculate inflows (income)
-                        val totalInflow = accountTransactions
-                            .filter { !it.isDebit }
-                            .fold(BigDecimal.ZERO) { acc, transaction -> 
-                                acc.add(transaction.amount) 
-                            }
-                            
-                        // Calculate outflows (expense)
-                        val totalOutflow = accountTransactions
-                            .filter { it.isDebit }
-                            .fold(BigDecimal.ZERO) { acc, transaction -> 
-                                acc.add(transaction.amount) 
-                            }
-                            
-                        // Calculate net flow
-                        val netFlow = totalInflow.subtract(totalOutflow)
-                        
-                        // Create account summary
-                        account.id to AccountSummary(
-                            totalInflow = totalInflow,
-                            totalOutflow = totalOutflow,
-                            netFlow = netFlow
-                        )
-                    }
-                    
-                    _uiState.value = _uiState.value.copy(
-                        accountSummaries = accountSummaries
-                    )
-                }
+            }
+            
+            val netFlow = totalInflow.subtract(totalOutflow)
+            
+            _uiState.value = _uiState.value.copy(
+                accountAnalytics = accountAnalytics,
+                totalInflow = totalInflow,
+                totalOutflow = totalOutflow,
+                netFlow = netFlow
+            )
         }
     }
 }

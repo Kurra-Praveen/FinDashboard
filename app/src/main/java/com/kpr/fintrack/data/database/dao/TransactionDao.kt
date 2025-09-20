@@ -24,6 +24,13 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY date DESC")
     fun getTransactionsByAccountId(accountId: Long): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
+    suspend fun getTransactionsByAccountIdAndDateRange(
+        accountId: Long,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<TransactionEntity>
+
     @Query("SELECT * FROM transactions WHERE merchantName LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' ORDER BY date DESC")
     fun searchTransactions(query: String): Flow<List<TransactionEntity>>
 

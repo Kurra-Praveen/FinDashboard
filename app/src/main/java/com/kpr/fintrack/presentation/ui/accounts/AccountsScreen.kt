@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.presentation.theme.CreditColor
 import com.kpr.fintrack.presentation.theme.DebitColor
 import com.kpr.fintrack.presentation.ui.components.AccountItem
@@ -74,19 +75,21 @@ fun AccountsScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Total Balance Summary
+                    // Monthly Summary
                     item {
-                        AccountsSummaryCard(
-                            totalBalance = uiState.totalBalance
+                        MonthlySummaryCard(
+                            totalInflow = uiState.totalInflow,
+                            totalOutflow = uiState.totalOutflow,
+                            netFlow = uiState.netFlow
                         )
                     }
                     
                     // Account List with Analytics
                     items(uiState.accounts) { account ->
-                        val accountSummary = uiState.accountSummaries[account.id]
+                        val accountAnalytics = uiState.accountAnalytics[account.id]
                         AccountItemWithAnalytics(
                             account = account,
-                            accountSummary = accountSummary,
+                            accountAnalytics = accountAnalytics,
                             onClick = { onAccountClick(account.id) }
                         )
                     }
@@ -97,7 +100,11 @@ fun AccountsScreen(
 }
 
 @Composable
-fun AccountsSummaryCard(totalBalance: BigDecimal) {
+fun MonthlySummaryCard(
+    totalInflow: BigDecimal,
+    totalOutflow: BigDecimal,
+    netFlow: BigDecimal
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -110,23 +117,71 @@ fun AccountsSummaryCard(totalBalance: BigDecimal) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Total Balance",
+                text = "This Month",
                 style = MaterialTheme.typography.titleMedium
             )
-            Text(
-                text = totalBalance.formatAsCurrency(),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (totalBalance >= BigDecimal.ZERO) CreditColor else DebitColor
-            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                MonthlySummaryItem(
+                    label = "Inflow",
+                    value = totalInflow,
+                    color = CreditColor,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                MonthlySummaryItem(
+                    label = "Outflow",
+                    value = totalOutflow,
+                    color = DebitColor,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                MonthlySummaryItem(
+                    label = "Net Flow",
+                    value = netFlow,
+                    color = if (netFlow >= BigDecimal.ZERO) CreditColor else DebitColor,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun MonthlySummaryItem(
+    label: String,
+    value: BigDecimal,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value.formatAsCurrency(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = color,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
 @Composable
 fun AccountItemWithAnalytics(
     account: com.kpr.fintrack.domain.model.Account,
-    accountSummary: AccountSummary?,
+    accountAnalytics: Account.MonthlyAnalytics?,
     onClick: () -> Unit
 ) {
     Card(
@@ -145,7 +200,7 @@ fun AccountItemWithAnalytics(
             )
             
             // Analytics section
-            if (accountSummary != null) {
+            if (accountAnalytics != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Divider()
                 Spacer(modifier = Modifier.height(12.dp))
@@ -155,24 +210,34 @@ fun AccountItemWithAnalytics(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     AnalyticsItem(
-                        label = "Income",
-                        value = accountSummary.totalInflow,
+                        label = "Inflow",
+                        value = accountAnalytics.totalInflow,
                         color = CreditColor,
                         modifier = Modifier.weight(1f)
                     )
                     AnalyticsItem(
-                        label = "Expense",
-                        value = accountSummary.totalOutflow,
+                        label = "Outflow",
+                        value = accountAnalytics.totalOutflow,
                         color = DebitColor,
                         modifier = Modifier.weight(1f)
                     )
                     AnalyticsItem(
                         label = "Net Flow",
-                        value = accountSummary.netFlow,
-                        color = if (accountSummary.netFlow >= BigDecimal.ZERO) CreditColor else DebitColor,
+                        value = accountAnalytics.netFlow,
+                        color = if (accountAnalytics.isPositive) CreditColor else DebitColor,
                         modifier = Modifier.weight(1f)
                     )
                 }
+                
+                // Transaction count
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${accountAnalytics.transactionCount} transactions this month",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

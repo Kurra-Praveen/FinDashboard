@@ -16,6 +16,16 @@ data class Account(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
+    
+    // Monthly analytics data (calculated dynamically)
+    data class MonthlyAnalytics(
+        val totalInflow: BigDecimal = BigDecimal.ZERO,
+        val totalOutflow: BigDecimal = BigDecimal.ZERO,
+        val netFlow: BigDecimal = BigDecimal.ZERO,
+        val transactionCount: Int = 0
+    ) {
+        val isPositive: Boolean get() = netFlow >= BigDecimal.ZERO
+    }
     enum class AccountType {
         SAVINGS, CHECKING, CREDIT, WALLET, INVESTMENT, OTHER;
         

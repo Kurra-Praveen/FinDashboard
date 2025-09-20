@@ -3,6 +3,7 @@ package com.kpr.fintrack.domain.repository
 import com.kpr.fintrack.domain.model.Account
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
+import java.time.YearMonth
 
 interface AccountRepository {
     fun getAllActiveAccounts(): Flow<List<Account>>
@@ -16,4 +17,5 @@ interface AccountRepository {
     suspend fun deleteAccount(account: Account)
     suspend fun deactivateAccount(accountId: Long)
     suspend fun getAccountCount(): Int
+    suspend fun getAccountMonthlyAnalytics(accountId: Long, yearMonth: YearMonth): Account.MonthlyAnalytics
 }
