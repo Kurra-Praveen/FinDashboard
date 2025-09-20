@@ -1,7 +1,10 @@
 package com.kpr.fintrack.presentation.ui
 
 import android.Manifest
+import android.content.ComponentName
+import android.content.Context
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -50,7 +53,7 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         permissionsState.launchMultiplePermissionRequest()
                     }
-
+                   // val notificationAccessGranted = isNotificationListenerEnabled(this@MainActivity)
                     when {
                         permissionsState.allPermissionsGranted -> {
                             FinTrackApp()
@@ -66,6 +69,16 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+// Helper function to check if notification listener access is granted for your service
+private fun isNotificationListenerEnabled(context: Context): Boolean {
+    val enabledListeners = Settings.Secure.getString(
+        context.contentResolver,
+        "enabled_notification_listeners"
+    )
+    val componentName = ComponentName(context, com.kpr.fintrack.services.notification.TransactionNotificationListenerService::class.java)
+    return enabledListeners?.contains(componentName.flattenToString()) == true
 }
 
 @Composable

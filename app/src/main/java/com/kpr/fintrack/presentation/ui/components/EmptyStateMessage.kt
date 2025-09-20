@@ -17,9 +17,9 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun EmptyStateMessage(
+    modifier: Modifier = Modifier,
     message: String,
     subMessage: String? = null,
-    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier

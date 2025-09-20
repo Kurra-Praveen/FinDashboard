@@ -11,42 +11,44 @@ import java.util.Locale
  * 提供格式化功能的工具类
  */
 object FormatUtils {
-    private val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.getDefault())
-    private val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy")
-    private val shortDateFormatter = DateTimeFormatter.ofPattern("dd MMM")
-    
+
+    // Always get current locale and formatters at use
+    private fun currencyFormatter(): NumberFormat =
+        NumberFormat.getCurrencyInstance(Locale.getDefault())
+
+    private fun dateFormatter(): DateTimeFormatter =
+        DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault())
+
+    private fun shortDateFormatter(): DateTimeFormatter =
+        DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault())
+
     /**
      * 将BigDecimal格式化为货币字符串
      */
-    fun BigDecimal.formatAsCurrency(): String {
-        return currencyFormatter.format(this)
-    }
-    
+    fun BigDecimal.formatAsCurrency(): String =
+        currencyFormatter().format(this)
+
     /**
      * 将Double格式化为货币字符串
      */
-    fun Double.formatAsCurrency(): String {
-        return currencyFormatter.format(this)
-    }
-    
+    fun Double.formatAsCurrency(): String =
+        currencyFormatter().format(this)
+
     /**
      * 将LocalDate格式化为日期字符串
      */
-    fun LocalDate.formatDate(): String {
-        return this.format(dateFormatter)
-    }
-    
+    fun LocalDate.formatDate(): String =
+        this.format(dateFormatter())
+
     /**
      * 将LocalDateTime格式化为日期字符串
      */
-    fun LocalDateTime.formatDate(): String {
-        return this.format(dateFormatter)
-    }
-    
+    fun LocalDateTime.formatDate(): String =
+        this.format(dateFormatter())
+
     /**
      * 将LocalDate格式化为短日期字符串
      */
-    fun LocalDate.formatShortDate(): String {
-        return this.format(shortDateFormatter)
-    }
+    fun LocalDate.formatShortDate(): String =
+        this.format(shortDateFormatter())
 }
