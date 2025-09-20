@@ -103,12 +103,14 @@ dependencies {
 
     // Dependency Injection
     implementation(libs.hilt.android)
+    implementation(libs.material3)
     ksp(libs.hilt.android.compiler)
 
     // Database
     implementation(libs.bundles.room)
     //implementation(libs.sqlcipher.android)
-    implementation("net.zetetic:android-database-sqlcipher:4.5.4")
+    //implementation("net.zetetic:android-database-sqlcipher:4.5.4")
+    implementation(libs.sqlcipher.android)
     ksp(libs.androidx.room.compiler)
     implementation(libs.sqlcipher.support)
 

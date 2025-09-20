@@ -11,7 +11,9 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.kpr.fintrack.R
 import com.kpr.fintrack.data.datasource.sms.SmsDataSource
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.repository.TransactionRepository
+import com.kpr.fintrack.domain.repository.AccountRepository
 import com.kpr.fintrack.presentation.ui.MainActivity
 import com.kpr.fintrack.utils.logging.SecureLogger
 import com.kpr.fintrack.utils.parsing.CategoryMatcher
@@ -21,6 +23,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -40,6 +43,7 @@ class InboxScannerService : Service() {
     @Inject lateinit var smsDataSource: SmsDataSource
     @Inject lateinit var transactionParser: TransactionParser
     @Inject lateinit var transactionRepository: TransactionRepository
+    @Inject lateinit var accountRepository: AccountRepository
     @Inject lateinit var categoryMatcher: CategoryMatcher
     @Inject lateinit var secureLogger: SecureLogger
 
@@ -103,7 +107,7 @@ class InboxScannerService : Service() {
             try {
                 secureLogger.i("INBOX_SCANNER", "Starting inbox scan")
 
-                val messages = smsDataSource.getAllSmsMessages().take(1000)
+                val messages = smsDataSource.getAllSmsMessages()
                 _scanProgress.value = ScanProgress(total = messages.size)
 
                 updateNotification(0, messages.size)
@@ -134,6 +138,30 @@ class InboxScannerService : Service() {
                                     upiApp = parseResult.upiApp
                                 )
 
+                                // Find or create account by account number
+                                val account = parseResult.accountNumber?.let { accountNumber ->
+                                    try {
+                                        // First try to find existing account
+                                        val existingAccount = accountRepository.getAccountByNumber(accountNumber).first()
+                                        if (existingAccount != null) {
+                                            existingAccount
+                                        } else {
+                                            // Create new account if not found
+                                            secureLogger.i("INBOX_SCANNER", "Account not found for number: $accountNumber, creating new account")
+                                            createAccountFromSms(accountNumber, parseResult, smsMessage)
+                                        }
+                                    } catch (e: Exception) {
+                                        secureLogger.w("INBOX_SCANNER", "Failed to find/create account for number: $accountNumber $e")
+                                        // Try to create account even if lookup failed
+                                        try {
+                                            createAccountFromSms(accountNumber, parseResult, smsMessage)
+                                        } catch (createException: Exception) {
+                                            secureLogger.e("INBOX_SCANNER", "Failed to create account for number: $accountNumber", createException)
+                                            null
+                                        }
+                                    }
+                                }
+
                                 val transaction = com.kpr.fintrack.domain.model.Transaction(
                                     amount = parseResult.amount ?: return@forEachIndexed,
                                     isDebit = parseResult.isDebit ?: true,
@@ -146,7 +174,8 @@ class InboxScannerService : Service() {
                                     referenceId = parseResult.referenceId,
                                     smsBody = smsMessage.body,
                                     sender = smsMessage.sender,
-                                    confidence = parseResult.confidence
+                                    confidence = parseResult.confidence,
+                                    account = account
                                 )
 
                                 transactionRepository.insertTransaction(transaction)
@@ -268,5 +297,99 @@ class InboxScannerService : Service() {
         scanJob?.cancel()
         serviceScope.cancel()
         super.onDestroy()
+    }
+
+    private suspend fun createAccountFromSms(
+        accountNumber: String,
+        parseResult: TransactionParser.ParseResult,
+        smsMessage: com.kpr.fintrack.data.datasource.sms.SmsMessage
+    ): Account? {
+        return try {
+            // Extract bank name from sender or SMS content
+            val bankName = extractBankNameFromSms(smsMessage.sender, smsMessage.body)
+            
+            // Create account name from bank name and last 4 digits
+            val accountName = if (accountNumber.length >= 4) {
+                "$bankName ****${accountNumber.takeLast(4)}"
+            } else {
+                "$bankName Account"
+            }
+
+            val newAccount = Account(
+                name = accountName,
+                accountNumber = accountNumber,
+                bankName = bankName,
+                accountType = Account.AccountType.SAVINGS, // Default to SAVINGS
+                isActive = true,
+                icon = getBankIcon(bankName),
+                color = getBankColor(bankName)
+            )
+
+            val accountId = accountRepository.insertAccount(newAccount)
+            secureLogger.i("INBOX_SCANNER", "Created new account: $accountName with ID: $accountId")
+            
+            newAccount.copy(id = accountId)
+        } catch (e: Exception) {
+            secureLogger.e("INBOX_SCANNER", "Failed to create account from SMS", e)
+            null
+        }
+    }
+
+    private fun extractBankNameFromSms(sender: String, messageBody: String): String {
+        // Common bank patterns in SMS senders
+        val bankPatterns = mapOf(
+            "HDFC" to "HDFC Bank",
+            "ICICI" to "ICICI Bank", 
+            "SBI" to "State Bank of India",
+            "AXIS" to "Axis Bank",
+            "KOTAK" to "Kotak Mahindra Bank",
+            "PNB" to "Punjab National Bank",
+            "BOI" to "Bank of India",
+            "BOB" to "Bank of Baroda",
+            "CANARA" to "Canara Bank",
+            "UNION" to "Union Bank of India"
+        )
+
+        val upperSender = sender.uppercase()
+        val upperMessage = messageBody.uppercase()
+
+        // Check sender first
+        bankPatterns.forEach { (pattern, bankName) ->
+            if (upperSender.contains(pattern)) {
+                return bankName
+            }
+        }
+
+        // Check message body
+        bankPatterns.forEach { (pattern, bankName) ->
+            if (upperMessage.contains(pattern)) {
+                return bankName
+            }
+        }
+
+        // Default fallback
+        return "Bank"
+    }
+
+    private fun getBankIcon(bankName: String): String {
+        return when {
+            bankName.contains("HDFC", ignoreCase = true) -> "🏦"
+            bankName.contains("ICICI", ignoreCase = true) -> "🏛️"
+            bankName.contains("SBI", ignoreCase = true) -> "🏦"
+            bankName.contains("AXIS", ignoreCase = true) -> "🏛️"
+            bankName.contains("KOTAK", ignoreCase = true) -> "🏦"
+            else -> "🏦"
+        }
+    }
+
+    private fun getBankColor(bankName: String): String {
+        return when {
+            bankName.contains("HDFC", ignoreCase = true) -> "#FF6B6B"
+            bankName.contains("ICICI", ignoreCase = true) -> "#4ECDC4"
+            bankName.contains("SBI", ignoreCase = true) -> "#45B7D1"
+            bankName.contains("AXIS", ignoreCase = true) -> "#96CEB4"
+            bankName.contains("KOTAK", ignoreCase = true) -> "#FFEAA7"
+            else -> "#95A5A6"
+        }
     }
 }

@@ -2,10 +2,11 @@ package com.kpr.fintrack.utils.security
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
+import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 @Singleton
 class DatabaseKeyProvider @Inject constructor(
@@ -15,12 +16,14 @@ class DatabaseKeyProvider @Inject constructor(
             android.util.Log.d("DatabaseKeyProvider", "Provider initialized")
         }
 
-    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+    private val masterKeyAlias = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
 
     private val sharedPreferences = EncryptedSharedPreferences.create(
+        context,
         "fintrack_secure_prefs",
         masterKeyAlias,
-        context,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
@@ -33,7 +36,7 @@ class DatabaseKeyProvider @Inject constructor(
             existingKey.toByteArray()
         } else {
             val newKey = generateRandomKey()
-            sharedPreferences.edit().putString(DATABASE_KEY, String(newKey)).apply()
+            sharedPreferences.edit { putString(DATABASE_KEY, String(newKey)) }
             newKey
         }
     }
@@ -53,7 +56,7 @@ class DatabaseKeyProvider @Inject constructor(
     // Add this method to your existing DatabaseKeyProvider class
     fun clearKeyAndDatabase() {
         android.util.Log.d("DatabaseKeyProvider", "Clearing key and database")
-        sharedPreferences.edit().remove(DATABASE_KEY).apply()
+        sharedPreferences.edit { remove(DATABASE_KEY) }
 
         // Delete database file if it exists
         val dbFile = context.getDatabasePath(com.kpr.fintrack.BuildConfig.DATABASE_NAME)

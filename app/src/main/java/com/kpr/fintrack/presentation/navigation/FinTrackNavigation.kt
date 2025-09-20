@@ -7,6 +7,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.kpr.fintrack.presentation.ui.accounts.AccountDetailScreen
+import com.kpr.fintrack.presentation.ui.accounts.AccountFormScreen
+import com.kpr.fintrack.presentation.ui.accounts.AccountsScreen
 import com.kpr.fintrack.presentation.ui.analytics.AnalyticsScreen
 import com.kpr.fintrack.presentation.ui.dashboard.DashboardScreen
 import com.kpr.fintrack.presentation.ui.transactions.TransactionsScreen
@@ -18,10 +21,17 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object Transactions : Screen("transactions")
     object Settings : Screen("settings")
-
     object Analytics : Screen("analytics")
+    object Accounts : Screen("accounts")
+    object AddAccount : Screen("add_account")
     object TransactionDetail : Screen("transaction_detail/{transactionId}") {
         fun createRoute(transactionId: Long) = "transaction_detail/$transactionId"
+    }
+    object AccountDetail : Screen("account_detail/{accountId}") {
+        fun createRoute(accountId: Long) = "account_detail/$accountId"
+    }
+    object EditAccount : Screen("edit_account/{accountId}") {
+        fun createRoute(accountId: Long) = "edit_account/$accountId"
     }
 }
 
@@ -52,7 +62,10 @@ fun FinTrackNavigation(
                     // ✅ Add analytics navigation
                     android.util.Log.d("Navigation", "Navigating to analytics")
                     navController.navigate(Screen.Analytics.route)
-
+                },
+                onNavigateToAccounts = {
+                    android.util.Log.d("Navigation", "Navigating to accounts")
+                    navController.navigate(Screen.Accounts.route)
                 },
                 onAddTransaction = {
                     navController.navigate("add_transaction")
@@ -128,6 +141,66 @@ fun FinTrackNavigation(
                     navController.popBackStack()
                 }
             )
-    }
+        }
+        
+        // Account screens
+        composable(Screen.Accounts.route) {
+            AccountsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onAccountClick = { accountId ->
+                    navController.navigate(Screen.AccountDetail.createRoute(accountId))
+                },
+                onAddAccount = {
+                    navController.navigate(Screen.AddAccount.route)
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.AccountDetail.route,
+            arguments = listOf(
+                navArgument("accountId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
+            AccountDetailScreen(
+                accountId = accountId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onEditAccount = { id ->
+                    navController.navigate(Screen.EditAccount.createRoute(id))
+                }
+            )
+        }
+        
+        composable(Screen.AddAccount.route) {
+            AccountFormScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.EditAccount.route,
+            arguments = listOf(
+                navArgument("accountId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
+            AccountFormScreen(
+                accountId = accountId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }

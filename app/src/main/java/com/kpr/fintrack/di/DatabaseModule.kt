@@ -2,9 +2,12 @@ package com.kpr.fintrack.di
 
 import android.content.Context
 import com.kpr.fintrack.data.database.FinTrackDatabase
+import com.kpr.fintrack.data.database.dao.AccountDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dao.UpiAppDao
+import com.kpr.fintrack.data.repository.AccountRepositoryImpl
+import com.kpr.fintrack.domain.repository.AccountRepository
 import com.kpr.fintrack.utils.security.DatabaseKeyProvider
 import dagger.Module
 import dagger.Provides
@@ -70,5 +73,16 @@ object DatabaseModule {
     @Provides
     fun provideUpiAppDao(database: FinTrackDatabase): UpiAppDao {
         return database.upiAppDao()
+    }
+    
+    @Provides
+    fun provideAccountDao(database: FinTrackDatabase): AccountDao {
+        return database.accountDao()
+    }
+    
+    @Singleton
+    @Provides
+    fun provideAccountRepository(accountRepositoryImpl: AccountRepositoryImpl): AccountRepository {
+        return accountRepositoryImpl
     }
 }

@@ -1,16 +1,18 @@
 package com.kpr.fintrack.data.database
 
+import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
-import android.content.Context
 import com.kpr.fintrack.BuildConfig
 import com.kpr.fintrack.data.database.converters.Converters
+import com.kpr.fintrack.data.database.dao.AccountDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dao.UpiAppDao
+import com.kpr.fintrack.data.database.entities.AccountEntity
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import com.kpr.fintrack.data.database.entities.UpiAppEntity
@@ -18,16 +20,16 @@ import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.UpiApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import net.sqlcipher.database.SQLiteDatabase
-import net.sqlcipher.database.SupportFactory
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
     entities = [
         TransactionEntity::class,
         CategoryEntity::class,
-        UpiAppEntity::class
+        UpiAppEntity::class,
+        AccountEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -36,6 +38,7 @@ abstract class FinTrackDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun categoryDao(): CategoryDao
     abstract fun upiAppDao(): UpiAppDao
+    abstract fun accountDao(): AccountDao
 
     companion object {
         fun create(
@@ -45,11 +48,12 @@ abstract class FinTrackDatabase : RoomDatabase() {
         ): FinTrackDatabase {
 
             // Load SQLCipher libraries first
-            SQLiteDatabase.loadLibs(context)
+            // Load SQLCipher libraries first
+            System.loadLibrary("sqlcipher")
 
             // Create fresh SupportFactory - CRITICAL for avoiding passphrase cleared error
             // Use false to disable automatic passphrase clearing
-            val supportFactory = SupportFactory(passphrase, null, false)
+            val supportFactory = SupportOpenHelperFactory(passphrase, null, false)
 
             return Room.databaseBuilder(
                 context,

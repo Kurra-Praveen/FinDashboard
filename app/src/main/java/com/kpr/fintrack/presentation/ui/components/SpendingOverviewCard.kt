@@ -2,6 +2,8 @@ package com.kpr.fintrack.presentation.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
@@ -14,6 +16,7 @@ import com.kpr.fintrack.presentation.theme.CreditColor
 import com.kpr.fintrack.presentation.theme.DebitColor
 import com.kpr.fintrack.utils.extensions.formatCurrency
 import java.math.BigDecimal
+import java.util.Locale
 
 @Composable
 fun SpendingOverviewCard(
@@ -111,7 +114,7 @@ private fun ComparisonIndicator(
         horizontalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = if (percentageChange >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+            imageVector = if (percentageChange >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
             contentDescription = null,
             tint = if (percentageChange >= 0) DebitColor else CreditColor,
             modifier = Modifier.size(16.dp)
@@ -120,7 +123,7 @@ private fun ComparisonIndicator(
         Spacer(modifier = Modifier.width(4.dp))
 
         Text(
-            text = "${if (percentageChange >= 0) "+" else ""}${String.format("%.1f", percentageChange)}% $label",
+            text = "${if (percentageChange >= 0) "+" else ""}${String.format(Locale.getDefault(),"%.1f", percentageChange)}% $label",
             style = MaterialTheme.typography.bodySmall,
             color = if (percentageChange >= 0) DebitColor else CreditColor
         )

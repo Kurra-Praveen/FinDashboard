@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
@@ -46,7 +47,7 @@ fun PermissionRequestScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Message,
+                    imageVector = Icons.AutoMirrored.Filled.Message,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -72,7 +73,7 @@ fun PermissionRequestScreen(
 
         // Permission explanation cards
         PermissionExplanationCard(
-            icon = Icons.Default.Message,
+            icon = Icons.AutoMirrored.Filled.Message,
             title = "SMS Access Required",
             description = "FinTrack needs to read SMS messages to automatically detect and categorize your financial transactions from banks and payment apps."
         )

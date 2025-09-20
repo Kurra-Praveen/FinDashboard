@@ -16,6 +16,7 @@ hiltNavigationCompose = "1.2.0"
 # Architecture & DI
 hilt = "2.51.1"
 room = "2.6.1"
+sqlcipherAndroid16 = "4.10.0"
 workManager = "2.9.1"
 
 # Security
@@ -44,6 +45,7 @@ robolectric = "4.13"
 # Static Analysis
 ktlint = "12.1.1"
 detekt = "1.23.6"
+material3="1.3.2"
 
 [libraries]
 # AndroidX Core
@@ -77,6 +79,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 #sqlcipher-android = { group = "net.zetetic", name = "android-database-sqlcipher", version.ref = "sqlcipher" }
+sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipherAndroid16" }
 sqlcipher-support = { group = "androidx.sqlite", name = "sqlite", version.ref = "sqlcipher-android" }
 # Work Manager
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workManager" }
@@ -104,6 +107,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

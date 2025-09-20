@@ -1,11 +1,15 @@
 package com.kpr.fintrack.data.repository
 
+import com.kpr.fintrack.data.database.dao.AccountDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dao.UpiAppDao
+import com.kpr.fintrack.data.database.entities.AccountEntity
+import kotlinx.coroutines.flow.first
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import com.kpr.fintrack.data.database.entities.UpiAppEntity
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.model.AnalyticsSummary
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.CategorySpendingData
@@ -34,15 +38,16 @@ import javax.inject.Singleton
 class TransactionRepositoryImpl @Inject constructor(
     private val transactionDao: TransactionDao,
     private val categoryDao: CategoryDao,
-    private val upiAppDao: UpiAppDao
+    private val upiAppDao: UpiAppDao,
+    private val accountDao: AccountDao
 ) : TransactionRepository {
-        init {
-            android.util.Log.d("TransactionRepositoryImpl", "Repository initialized")
-        }
+    init {
+        android.util.Log.d("TransactionRepositoryImpl", "Repository initialized")
+    }
 
     override fun getAllTransactions(): Flow<List<Transaction>> {
         return transactionDao.getAllTransactions().map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao) }
         }
     }
 
@@ -51,19 +56,25 @@ class TransactionRepositoryImpl @Inject constructor(
         endDate: LocalDateTime
     ): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByDateRange(startDate, endDate).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao) }
         }
     }
 
     override fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByCategory(categoryId).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao) }
+        }
+    }
+
+    override fun getTransactionsByAccountId(accountId: Long): Flow<List<Transaction>> {
+        return transactionDao.getTransactionsByAccountId(accountId).map { entities ->
+            entities.map { it.toDomainModel(accountDao) }
         }
     }
 
     override fun searchTransactions(query: String): Flow<List<Transaction>> {
         return transactionDao.searchTransactions(query).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao) }
         }
     }
 
@@ -77,18 +88,21 @@ class TransactionRepositoryImpl @Inject constructor(
             isDebit = filter.isDebit,
             searchQuery = filter.searchQuery
         ).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao) }
         }
     }
 
     override fun getRecentTransactions(limit: Int): Flow<List<Transaction>> {
         return transactionDao.getRecentTransactions(limit).map { entities ->
-            entities.map { it.toDomainModel() }
+            entities.map { it.toDomainModel(accountDao) }
         }
     }
 
     override suspend fun insertTransaction(transaction: Transaction): Long {
-        return transactionDao.insertTransaction(transaction.toEntity())
+        var result= transactionDao.insertTransaction(transaction.toEntity())
+        //accountDao.getAccountById(transaction.toEntity().accountNumber)
+        return result
+
     }
 
     override suspend fun insertTransactions(transactions: List<Transaction>) {
@@ -104,7 +118,7 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getTransactionByReferenceId(referenceId: String): Transaction? {
-        return transactionDao.getTransactionByReferenceId(referenceId)?.toDomainModel()
+        return transactionDao.getTransactionByReferenceId(referenceId)?.toDomainModel(accountDao)
     }
 
     override suspend fun getTotalSpending(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
@@ -150,7 +164,7 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getTransactionById(id: Long): Transaction? {
-        return transactionDao.getTransactionById(id)?.toDomainModel()
+        return transactionDao.getTransactionById(id)?.toDomainModel(accountDao)
     }
 
     // Add to TransactionRepositoryImpl class
@@ -296,10 +310,15 @@ class TransactionRepositoryImpl @Inject constructor(
 }
 
 // Extension functions for entity conversion
-private suspend fun TransactionEntity.toDomainModel(): Transaction {
+private suspend fun TransactionEntity.toDomainModel(accountDao: AccountDao): Transaction {
     // Note: In a real implementation, you'd want to fetch the category and upiApp from their DAOs
     val defaultCategory = Category.getDefaultCategories().find { it.id == this.categoryId }
         ?: Category.getDefaultCategories().last() // Default to "Other"
+
+    // Get account if accountId is not null
+    val account = accountId?.let { id ->
+        accountDao.getAccountById(id).first()?.toDomainModel()
+    }
 
     return Transaction(
         id = id,
@@ -310,6 +329,7 @@ private suspend fun TransactionEntity.toDomainModel(): Transaction {
         category = defaultCategory,
         date = date,
         upiApp = null, // TODO: Fetch from UpiAppDao
+        account = account,
         accountNumber = accountNumber,
         referenceId = referenceId,
         smsBody = smsBody,
@@ -332,6 +352,7 @@ private fun Transaction.toEntity(): TransactionEntity {
         categoryId = category.id,
         date = date,
         upiAppId = upiApp?.id,
+        accountId = account?.id,
         accountNumber = accountNumber,
         referenceId = referenceId,
         smsBody = smsBody,
@@ -375,5 +396,21 @@ private fun UpiAppEntity.toDomainModel(): UpiApp {
         packageName = packageName,
         senderPattern = senderPattern,
         icon = icon
+    )
+}
+
+private fun AccountEntity.toDomainModel(): Account {
+    return Account(
+        id = id,
+        name = name,
+        accountNumber = accountNumber,
+        bankName = bankName,
+        currentBalance = currentBalance,
+        accountType = Account.AccountType.fromString(accountType),
+        isActive = isActive,
+        icon = icon,
+        color = color,
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }

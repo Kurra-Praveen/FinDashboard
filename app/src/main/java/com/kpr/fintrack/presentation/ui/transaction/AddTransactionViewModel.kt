@@ -5,9 +5,11 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.QuickTransactionTemplate
 import com.kpr.fintrack.domain.model.TransactionFormData
+import com.kpr.fintrack.domain.repository.AccountRepository
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,11 +34,27 @@ data class AddTransactionUiState(
 
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val accountRepository: AccountRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddTransactionUiState())
     val uiState: StateFlow<AddTransactionUiState> = _uiState.asStateFlow()
+    
+    private val _accounts = MutableStateFlow<List<Account>>(emptyList())
+    val accounts: StateFlow<List<Account>> = _accounts.asStateFlow()
+    
+    init {
+        loadAccounts()
+    }
+    
+    private fun loadAccounts() {
+        viewModelScope.launch {
+            accountRepository.getAllActiveAccounts().collect { accountsList ->
+                _accounts.value = accountsList
+            }
+        }
+    }
 
     fun loadTransaction(transactionId: Long) {
         viewModelScope.launch {
@@ -97,6 +115,11 @@ class AddTransactionViewModel @Inject constructor(
 
     fun onDescriptionChanged(description: String) {
         val newFormData = _uiState.value.formData.copy(description = description)
+        _uiState.value = _uiState.value.copy(formData = newFormData)
+    }
+    
+    fun onAccountChanged(account: Account?) {
+        val newFormData = _uiState.value.formData.copy(account = account)
         _uiState.value = _uiState.value.copy(formData = newFormData)
     }
 

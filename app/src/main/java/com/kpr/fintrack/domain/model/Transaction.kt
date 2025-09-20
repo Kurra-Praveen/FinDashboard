@@ -12,6 +12,7 @@ data class Transaction(
     val category: Category,
     val date: LocalDateTime,
     val upiApp: UpiApp? = null,
+    val account: Account? = null,
     val accountNumber: String? = null,
     val referenceId: String? = null,
     val smsBody: String, // Store original SMS for debugging
