@@ -15,26 +15,38 @@ class AccountRepositoryImpl @Inject constructor(
     private val accountDao: AccountDao
 ) : AccountRepository {
 
+    init {
+        android.util.Log.d("AccountRepositoryImpl", "Initialized")
+    }
+
     override fun getAllActiveAccounts(): Flow<List<Account>> {
+        android.util.Log.d("AccountRepositoryImpl", "getAllActiveAccounts called")
         return accountDao.getAllActiveAccounts().map { entities ->
+            android.util.Log.d("AccountRepositoryImpl", "Fetched active accounts: ${entities.size}")
             entities.map { it.toDomain() }
         }
     }
 
     override fun getAllAccounts(): Flow<List<Account>> {
+        android.util.Log.d("AccountRepositoryImpl", "getAllAccounts called")
         return accountDao.getAllAccounts().map { entities ->
+            android.util.Log.d("AccountRepositoryImpl", "Fetched all accounts: ${entities.size}")
             entities.map { it.toDomain() }
         }
     }
 
     override fun getAccountById(accountId: Long): Flow<Account?> {
+        android.util.Log.d("AccountRepositoryImpl", "getAccountById called: $accountId")
         return accountDao.getAccountById(accountId).map { entity ->
+            android.util.Log.d("AccountRepositoryImpl", "Fetched account by id: $accountId, found: ${entity != null}")
             entity?.toDomain()
         }
     }
 
     override fun getAccountByNumber(accountNumber: String): Flow<Account?> {
+        android.util.Log.d("AccountRepositoryImpl", "getAccountByNumber called: $accountNumber")
         return accountDao.getAccountByNumber(accountNumber).map { entity ->
+            android.util.Log.d("AccountRepositoryImpl", "Fetched account by number: $accountNumber, found: ${entity != null}")
             entity?.toDomain()
         }
     }
@@ -85,7 +97,7 @@ class AccountRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun Account.toEntity(): AccountEntity {
+     fun Account.toEntity(): AccountEntity {
         return AccountEntity(
             id = id,
             name = name,

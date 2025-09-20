@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.telephony.SmsMessage
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import com.kpr.fintrack.utils.parsing.TransactionParser
 import com.kpr.fintrack.utils.logging.SecureLogger
@@ -68,6 +69,7 @@ class TransactionSmsReceiver : BroadcastReceiver() {
                         description = parseResult.description ?: "",
                         upiApp = parseResult.upiApp
                     )
+                   // val account= Account()
 
                     val transaction = com.kpr.fintrack.domain.model.Transaction(
                         amount = parseResult.amount ?: return@launch,
@@ -75,13 +77,14 @@ class TransactionSmsReceiver : BroadcastReceiver() {
                         merchantName = parseResult.merchantName ?: "Unknown",
                         description = parseResult.description ?: message.messageBody,
                         category = category,
-                        date = parseResult.extractedDate ?: java.time.LocalDateTime.now(),
+                        date = parseResult.extractedDate ?:LocalDateTime.now(),
                         upiApp = parseResult.upiApp,
                         accountNumber = parseResult.accountNumber,
                         referenceId = parseResult.referenceId,
                         smsBody = message.messageBody,
                         sender = message.displayOriginatingAddress ?: "Unknown",
-                        confidence = parseResult.confidence
+                        confidence = parseResult.confidence,
+                        account = null
                     )
 
                     transactionRepository.insertTransaction(transaction)

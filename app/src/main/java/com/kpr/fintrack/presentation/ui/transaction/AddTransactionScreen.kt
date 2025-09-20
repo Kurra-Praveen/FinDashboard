@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -249,7 +250,7 @@ fun AddTransactionScreen(
                                     Icon(
                                         imageVector = Icons.Default.AccountBalance,
                                         contentDescription = null,
-                                        tint = account.color?.let { Color(android.graphics.Color.parseColor(it)) } 
+                                        tint = account.color?.let { Color(android.graphics.Color.parseColor(it)) }
                                             ?: MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
