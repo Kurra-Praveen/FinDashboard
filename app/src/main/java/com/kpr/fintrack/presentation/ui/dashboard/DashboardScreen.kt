@@ -1,5 +1,6 @@
 package com.kpr.fintrack.presentation.ui.dashboard
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -12,8 +13,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.Transaction
@@ -257,7 +261,8 @@ private fun AnalyticsPreviewCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text =  Category.getDefaultCategories().find { x -> x.id==category.category.id}?.icon ?: "Unknown")
+                            //Text(text =  Category.getDefaultCategories().find { x -> x.id==category.category.id}?.icon ?: "Unknown")
+                            CategoryIcon(category.category.id)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = Category.getDefaultCategories().find { x -> x.id==category.category.id}?.name ?: "Unknown",
@@ -282,6 +287,33 @@ private fun AnalyticsPreviewCard(
         }
     }
 }
+@Composable
+fun CategoryIcon(categoryId: Long) {
+    val context = LocalContext.current
+    val category = Category.getDefaultCategories().find { it.id == categoryId }
+
+    category?.let {
+        // Try to resolve as drawable first
+        val resId = context.resources.getIdentifier(it.icon, "drawable", context.packageName)
+
+        if (resId != 0) {
+            // ✅ Found drawable → show image
+            Image(
+                painter = painterResource(id = resId),
+                contentDescription = it.name,
+                modifier = Modifier.size(24.dp)
+            )
+        } else {
+            // ❌ Not a drawable → treat it as emoji / text
+            Text(
+                text = it.icon,
+                fontSize = 20.sp,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    } ?: Text("Unknown")
+}
+
 
 @Composable
 private fun EmptyStateCard(

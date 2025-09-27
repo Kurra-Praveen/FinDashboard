@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kpr.fintrack.domain.model.Category
+import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,10 +87,11 @@ private fun CategoryItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = category.icon,
-                style = MaterialTheme.typography.headlineSmall
-            )
+//            Text(
+//                text = category.icon,
+//                style = MaterialTheme.typography.headlineSmall
+//            )
+            CategoryIcon(category.id)
 
             Spacer(modifier = Modifier.width(12.dp))
 

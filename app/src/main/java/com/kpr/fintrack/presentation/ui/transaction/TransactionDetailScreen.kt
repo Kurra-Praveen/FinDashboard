@@ -19,6 +19,7 @@ import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.presentation.theme.CreditColor
 import com.kpr.fintrack.presentation.theme.DebitColor
 import com.kpr.fintrack.presentation.ui.components.CategorySelectionBottomSheet
+import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
 import com.kpr.fintrack.utils.extensions.formatCurrency
 import java.time.format.DateTimeFormatter
 
@@ -253,10 +254,11 @@ private fun TransactionDetailContent(
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = transaction.category.icon,
-                    style = MaterialTheme.typography.headlineMedium
-                )
+//                Text(
+//                    text = transaction.category.icon,
+//                    style = MaterialTheme.typography.headlineMedium
+//                )
+                CategoryIcon(transaction.category.id)
 
                 Spacer(modifier = Modifier.width(12.dp))
 
