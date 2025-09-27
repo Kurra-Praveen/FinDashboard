@@ -58,8 +58,8 @@ data class Category(
                         )
                     ), Category(
                         id = 4L,
-                        name = "Cash Withdrawal",
-                        icon = "🏧",
+                        name = "UPI Transactions",
+                        icon = "upi_icon",
                         color = "#96CEB4",
                         isDefault = true,
                         keywords = listOf("atm", "cash", "withdrawal", "bank")
@@ -97,7 +97,7 @@ data class Category(
                         color = "#F7DC6F",
                         isDefault = true,
                         keywords = listOf(
-                            "movie", "cinema", "netflix", "spotify", "game", "entertainment"
+                            "movie", "cinema", "netflix", "spotify", "game", "entertainment","district"
                         )
                     )
                 )

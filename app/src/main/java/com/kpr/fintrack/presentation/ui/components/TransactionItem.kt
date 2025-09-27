@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kpr.fintrack.domain.model.Transaction
+import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
 import com.kpr.fintrack.utils.FormatUtils.formatAsCurrency
 import com.kpr.fintrack.utils.FormatUtils.formatDate
 import java.time.format.DateTimeFormatter
@@ -34,10 +35,11 @@ fun TransactionItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Category icon
-            Text(
-                text = transaction.category.icon,
-                style = MaterialTheme.typography.headlineSmall
-            )
+//            Text(
+//                text = transaction.category.icon,
+//                style = MaterialTheme.typography.headlineSmall
+//            )
+            CategoryIcon(transaction.category.id)
 
             Spacer(modifier = Modifier.width(12.dp))
 

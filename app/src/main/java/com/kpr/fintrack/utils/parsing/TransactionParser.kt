@@ -7,6 +7,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.UUID
 import java.util.regex.Pattern
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -153,7 +154,10 @@ class TransactionParser @Inject constructor(
 
     private fun extractReferenceId(matcher: java.util.regex.Matcher, group: Int): String? {
         return try {
-            if (group > 0 && group <= matcher.groupCount()) {
+            if (group >= 0 && group <= matcher.groupCount()) {
+                if (group==0){
+                    return UUID.randomUUID().toString()
+                }
                 matcher.group(group)?.trim()
             } else null
         } catch (e: Exception) {
@@ -164,7 +168,7 @@ class TransactionParser @Inject constructor(
     private fun extractAccountNumber(matcher: java.util.regex.Matcher, group: Int): String? {
         return try {
             if (group > 0 && group <= matcher.groupCount()) {
-                matcher.group(group)?.trim()
+                matcher.group(group)?.replace("x".toRegex(RegexOption.IGNORE_CASE),"")?.trim()
             } else null
         } catch (e: Exception) {
             null
