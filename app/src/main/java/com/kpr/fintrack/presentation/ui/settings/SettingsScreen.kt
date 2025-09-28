@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
     modifier: Modifier = Modifier
 ) {
         android.util.Log.d("SettingsScreen", "Composable entered")
@@ -72,7 +73,7 @@ fun SettingsScreen(
                     title = "Notifications",
                     subtitle = "Configure notification settings",
                     icon = Icons.Default.Notifications,
-                    onClick = { /* Navigate to notifications */ }
+                    onClick = onNavigateToNotifications
                 )
             }
 
