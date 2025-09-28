@@ -14,6 +14,7 @@ import com.kpr.fintrack.presentation.ui.analytics.AnalyticsScreen
 import com.kpr.fintrack.presentation.ui.dashboard.DashboardScreen
 import com.kpr.fintrack.presentation.ui.transactions.TransactionsScreen
 import com.kpr.fintrack.presentation.ui.settings.SettingsScreen
+import com.kpr.fintrack.presentation.ui.settings.NotificationSettingsScreen
 import com.kpr.fintrack.presentation.ui.transaction.AddTransactionScreen
 import com.kpr.fintrack.presentation.ui.transaction.TransactionDetailScreen
 
@@ -33,6 +34,7 @@ sealed class Screen(val route: String) {
     object EditAccount : Screen("edit_account/{accountId}") {
         fun createRoute(accountId: Long) = "edit_account/$accountId"
     }
+    object NotificationSettings : Screen("notification_settings")
 }
 
 @Composable
@@ -123,6 +125,9 @@ fun FinTrackNavigation(
             SettingsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToNotifications = {
+                    navController.navigate(Screen.NotificationSettings.route)
                 }
             )
         }
@@ -197,6 +202,15 @@ fun FinTrackNavigation(
             val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
             AccountFormScreen(
                 accountId = accountId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Notification Settings Screen
+        composable(Screen.NotificationSettings.route) {
+            NotificationSettingsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
