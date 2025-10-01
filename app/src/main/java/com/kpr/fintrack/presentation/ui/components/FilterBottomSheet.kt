@@ -11,6 +11,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.repository.TransactionFilter
+import java.time.LocalDateTime
+import java.time.LocalDate
+import java.time.LocalTime
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.ui.platform.LocalContext
+import java.time.format.DateTimeFormatter
+import android.app.DatePickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +42,15 @@ fun FilterBottomSheet(
     var maxAmount by remember {
         mutableStateOf(currentFilter.maxAmount?.toString() ?: "")
     }
+    var startDate by remember {
+        mutableStateOf(currentFilter.startDate)
+    }
+    var endDate by remember {
+        mutableStateOf(currentFilter.endDate)
+    }
+
+    val context = LocalContext.current
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy") }
 
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
@@ -43,7 +61,7 @@ fun FilterBottomSheet(
         sheetState = bottomSheetState,
         modifier = modifier
     ) {
-        LazyColumn(
+        LazyColumn (
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -87,6 +105,21 @@ fun FilterBottomSheet(
             }
 
             item {
+                DateRangeFilter(
+                    startDate = startDate,
+                    endDate = endDate,
+                    onStartDateSelected = { startDate = it },
+                    onEndDateSelected = { endDate = it },
+                    onClearDates = {
+                        startDate = null
+                        endDate = null
+                    },
+                    dateFormatter = dateFormatter,
+                    context = context
+                )
+            }
+
+            item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -105,7 +138,9 @@ fun FilterBottomSheet(
                                     categoryIds = selectedCategories.takeIf { it.isNotEmpty() }?.toList(),
                                     isDebit = selectedTransactionType,
                                     minAmount = minAmount.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
-                                    maxAmount = maxAmount.takeIf { it.isNotBlank() }?.toBigDecimalOrNull()
+                                    maxAmount = maxAmount.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
+                                    startDate = startDate,
+                                    endDate = endDate?.with (LocalTime.MAX) // Set end date to end of day
                                 )
                             )
                         },
@@ -119,6 +154,120 @@ fun FilterBottomSheet(
             // Add bottom padding for the last item
             item {
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DateRangeFilter(
+    startDate: LocalDateTime?,
+    endDate: LocalDateTime?,
+    onStartDateSelected: (LocalDateTime) -> Unit,
+    onEndDateSelected: (LocalDateTime) -> Unit,
+    onClearDates: () -> Unit,
+    dateFormatter: DateTimeFormatter,
+    context: android.content.Context,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Date Range",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (startDate != null || endDate != null) {
+                IconButton(onClick = onClearDates) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear dates"
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = {
+                    val currentDate = startDate?.toLocalDate() ?: LocalDate.now()
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, day ->
+                            onStartDateSelected(
+                                LocalDateTime.of(
+                                    LocalDate.of(year, month + 1, day),
+                                    LocalTime.MIN
+                                )
+                            )
+                        },
+                        currentDate.year,
+                        currentDate.monthValue - 1,
+                        currentDate.dayOfMonth
+                    ).show()
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = startDate?.format(dateFormatter) ?: "Start Date",
+                        maxLines = 1
+                    )
+                }
+            }
+
+            OutlinedButton(
+                onClick = {
+                    val currentDate = endDate?.toLocalDate() ?: LocalDate.now()
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, day ->
+                            onEndDateSelected(
+                                LocalDateTime.of(
+                                    LocalDate.of(year, month + 1, day),
+                                    LocalTime.MIN
+                                )
+                            )
+                        },
+                        currentDate.year,
+                        currentDate.monthValue - 1,
+                        currentDate.dayOfMonth
+                    ).show()
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = endDate?.format(dateFormatter) ?: "End Date",
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

@@ -80,7 +80,7 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override fun getFilteredTransactions(filter: TransactionFilter): Flow<List<Transaction>> {
         return transactionDao.getFilteredTransactions(
-            categoryIds = filter.categoryIds,
+            categoryIds = filter.categoryIds?.joinToString(",") ?: "",
             startDate = filter.startDate,
             endDate = filter.endDate,
             minAmount = filter.minAmount,
