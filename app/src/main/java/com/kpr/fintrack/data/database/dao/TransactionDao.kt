@@ -36,7 +36,16 @@ interface TransactionDao {
 
     @Query("""
         SELECT * FROM transactions 
-        WHERE (:categoryIds IS NULL OR categoryId IN (:categoryIds))
+        WHERE (:categoryIds = '' OR categoryId IN (
+            WITH RECURSIVE split(word, rest) AS (
+                SELECT '', :categoryIds || ',' 
+                UNION ALL
+                SELECT substr(rest, 0, instr(rest, ',')),
+                    substr(rest, instr(rest, ',') + 1)
+                FROM split WHERE rest <> ''
+            )
+            SELECT CAST(trim(word) AS INTEGER) FROM split WHERE word <> ''
+        ))
         AND (:startDate IS NULL OR date >= :startDate)
         AND (:endDate IS NULL OR date <= :endDate)
         AND (:minAmount IS NULL OR amount >= :minAmount)
@@ -46,7 +55,7 @@ interface TransactionDao {
         ORDER BY date DESC
     """)
     fun getFilteredTransactions(
-        categoryIds: List<Long>? = null,
+        categoryIds: String = "",
         startDate: LocalDateTime? = null,
         endDate: LocalDateTime? = null,
         minAmount: BigDecimal? = null,

@@ -61,7 +61,7 @@ object  HDFCPatterns {
             id = "hdfc_credit_alert_v1",
             bankName = "HDFC",
             regex = Pattern.compile(
-                """Rs\.([\d.]+)\s+credited to\s+(.+?)\s+A/c\s+(\w+)\s+on\s+(\d{2}-\d{2}-\d{2})\s+from VPA\s+([\w.@]+)\s+\(UPI\s+(\d+)\)""",
+                """Rs\.([\d.]+)\s+credited to\s+(.+?)\s+A/c\s+(\w+)\s+on\s+(\d{2}-\d{2}-\d{2})\s+from VPA\s+([\w.\-@]+)\s+\(UPI\s+(\d+)\)""",
                 Pattern.CASE_INSENSITIVE or Pattern.DOTALL
             ),
             amountGroup = 1,
