@@ -19,4 +19,4 @@ instructions.md
 .github/instructions/instructions.instructions.md
 app/google-services.json
 .idea/deploymentTargetSelector.xml
-.idea/deploymentTargetSelector.xml
+/app/release/*

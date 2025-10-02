@@ -22,22 +22,6 @@ object ICICIPatterns {
             transactionType = "debit",
             baseConfidence = 0.95f
         ),
-//        TransactionPattern(
-//            id = "icici_card_spent_v1",
-//            bankName = "ICICI",
-//            regex = Pattern.compile(
-//                "INR\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)\\s*spent using ICICI Bank Card XX(\\d{4})" +
-//                        "\\s*on\\s*(\\d{2}-[A-Za-z]{3}-\\d{2})\\s*on\\s*([A-Za-z\\s]+)\\." +
-//                        "\\s*Avl Limit: INR\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})?)",
-//                Pattern.CASE_INSENSITIVE
-//            ),
-//            amountGroup = 1,
-//            accountGroup = 2,
-//            dateGroup = 3,
-//            merchantGroup = 4,
-//            transactionType = "debit",
-//            baseConfidence = 0.95f
-//        ),
         TransactionPattern(
             id = "icici_card_txn",
             bankName = "ICICI",
