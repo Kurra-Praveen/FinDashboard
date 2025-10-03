@@ -72,7 +72,10 @@ android {
 
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += setOf(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md"
+            )
         }
     }
 
@@ -89,6 +92,7 @@ room {
 }
 
 dependencies {
+    implementation("com.google.errorprone:error_prone_annotations:2.18.0")
     // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

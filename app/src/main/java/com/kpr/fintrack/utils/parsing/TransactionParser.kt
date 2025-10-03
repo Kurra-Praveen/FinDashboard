@@ -125,6 +125,9 @@ class TransactionParser @Inject constructor(
 
     private fun extractMerchant(matcher: java.util.regex.Matcher, group: Int, message: String): String? {
         return try {
+            if (group==0){
+                return "UPI Transfer"
+            }
             if (group > 0 && group <= matcher.groupCount()) {
                 matcher.group(group)?.trim()
             } else {
@@ -135,22 +138,6 @@ class TransactionParser @Inject constructor(
             null
         }
     }
-
-//    private fun extractMerchantFallback(message: String): String? {
-//        val merchantPatterns = listOf(
-//            "at\\s+([A-Z\\s]+)\\s+on".toRegex(),
-//            "to\\s+([A-Z\\s]+)\\s+on".toRegex(),
-//            "from\\s+([A-Z\\s]+)\\s+on".toRegex(),
-//            "paid\\s+to\\s+([A-Z\\s]+)".toRegex()
-//        )
-//
-//        merchantPatterns.forEach { pattern ->
-//            pattern.find(message)?.let { match ->
-//                return match.groupValues[1].trim()
-//            }
-//        }
-//        return null
-//    }
 
     private fun extractReferenceId(matcher: java.util.regex.Matcher, group: Int): String? {
         return try {
