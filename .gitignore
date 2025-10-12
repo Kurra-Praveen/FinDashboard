@@ -20,3 +20,4 @@ instructions.md
 app/google-services.json
 .idea/deploymentTargetSelector.xml
 /app/release/*
+.idx/dev.nix

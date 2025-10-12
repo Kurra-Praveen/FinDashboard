@@ -11,11 +11,11 @@ class NotificationScheduler {
         fun scheduleDailyNotifications(context: Context) {
             val workManager = WorkManager.getInstance(context)
             android.util.Log.d("NotificationScheduler", "Scheduling daily notifications with WorkManager")
-            
+
             // Cancel existing work first
             workManager.cancelUniqueWork("daily_spending_notification")
             workManager.cancelUniqueWork("daily_spending_recurring")
-            
+
             // Create constraints for the notification
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
@@ -70,26 +70,26 @@ class NotificationScheduler {
             workManager.cancelUniqueWork("daily_spending_notification")
             workManager.cancelUniqueWork("daily_spending_recurring")
         }
-        
+
         private fun calculateDelayUntilNextNotification(context: Context): Long {
             val now = System.currentTimeMillis()
             val calendar = java.util.Calendar.getInstance()
-            
+
             // Get user's preferred time from preferences
             val prefs = context.getSharedPreferences("fintrack_prefs", Context.MODE_PRIVATE)
             val timeString = prefs.getString("notification_time", "20:00") ?: "20:00"
-            
+
             try {
                 val timeParts = timeString.split(":")
                 val hour = timeParts[0].toInt()
                 val minute = timeParts[1].toInt()
-                
+
                 // Set to user's preferred time today
                 calendar.set(java.util.Calendar.HOUR_OF_DAY, hour)
                 calendar.set(java.util.Calendar.MINUTE, minute)
                 calendar.set(java.util.Calendar.SECOND, 0)
                 calendar.set(java.util.Calendar.MILLISECOND, 0)
-                
+
                 // If it's already past the preferred time today, schedule for tomorrow
                 if (calendar.timeInMillis <= now) {
                     calendar.add(java.util.Calendar.DAY_OF_MONTH, 1)
@@ -100,12 +100,12 @@ class NotificationScheduler {
                 calendar.set(java.util.Calendar.MINUTE, 0)
                 calendar.set(java.util.Calendar.SECOND, 0)
                 calendar.set(java.util.Calendar.MILLISECOND, 0)
-                
+
                 if (calendar.timeInMillis <= now) {
                     calendar.add(java.util.Calendar.DAY_OF_MONTH, 1)
                 }
             }
-            
+
             return calendar.timeInMillis - now
         }
     }
