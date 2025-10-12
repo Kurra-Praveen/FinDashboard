@@ -48,8 +48,8 @@ interface TransactionDao {
         ))
         AND (:startDate IS NULL OR date >= :startDate)
         AND (:endDate IS NULL OR date <= :endDate)
-        AND (:minAmount IS NULL OR amount >= :minAmount)
-        AND (:maxAmount IS NULL OR amount <= :maxAmount)
+        AND (:minAmount IS NULL OR ROUND(CAST(amount AS DECIMAL), 2) >= ROUND(CAST(:minAmount AS DECIMAL), 2))
+        AND (:maxAmount IS NULL OR ROUND(CAST(amount AS DECIMAL), 2) <= ROUND(CAST(:maxAmount AS DECIMAL), 2))
         AND (:isDebit IS NULL OR isDebit = :isDebit)
         AND (:searchQuery IS NULL OR merchantName LIKE '%' || :searchQuery || '%' OR description LIKE '%' || :searchQuery || '%')
         ORDER BY date DESC

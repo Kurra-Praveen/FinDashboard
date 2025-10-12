@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.ui.platform.LocalContext
 import java.time.format.DateTimeFormatter
 import android.app.DatePickerDialog
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +31,7 @@ fun FilterBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-        android.util.Log.d("FilterBottomSheet", "Composable entered")
+    android.util.Log.d("FilterBottomSheet", "Current filter state: $currentFilter")
     var selectedCategories by remember {
         mutableStateOf(currentFilter.categoryIds?.toSet() ?: emptySet())
     }
@@ -133,16 +135,24 @@ fun FilterBottomSheet(
 
                     Button(
                         onClick = {
-                            onFilterUpdate(
-                                currentFilter.copy(
-                                    categoryIds = selectedCategories.takeIf { it.isNotEmpty() }?.toList(),
-                                    isDebit = selectedTransactionType,
-                                    minAmount = minAmount.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
-                                    maxAmount = maxAmount.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
-                                    startDate = startDate,
-                                    endDate = endDate?.with (LocalTime.MAX) // Set end date to end of day
-                                )
+                            val updatedFilter = currentFilter.copy(
+                                categoryIds = selectedCategories.takeIf { it.isNotEmpty() }?.toList(),
+                                isDebit = selectedTransactionType,
+                                minAmount = minAmount.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
+                                maxAmount = maxAmount.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
+                                startDate = startDate,
+                                endDate = endDate?.with(LocalTime.MAX),
                             )
+                            android.util.Log.d("FilterBottomSheet", """
+                                Applying filters:
+                                Categories: ${updatedFilter.categoryIds}
+                                Transaction Type: ${updatedFilter.isDebit}
+                                Min Amount: ${updatedFilter.minAmount}
+                                Max Amount: ${updatedFilter.maxAmount}
+                                Start Date: ${updatedFilter.startDate}
+                                End Date: ${updatedFilter.endDate}
+                            """.trimIndent())
+                            onFilterUpdate(updatedFilter)
                         },
                         modifier = Modifier.weight(1f)
                     ) {
@@ -411,19 +421,49 @@ private fun AmountRangeFilter(
         ) {
             OutlinedTextField(
                 value = minAmount,
-                onValueChange = onMinAmountChange,
+                onValueChange = { newValue ->
+                    // Only allow valid decimal numbers
+                    if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                        onMinAmountChange(newValue)
+                    }
+                },
                 label = { Text("Min Amount") },
                 placeholder = { Text("0") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal
+                )
             )
 
             OutlinedTextField(
                 value = maxAmount,
-                onValueChange = onMaxAmountChange,
+                onValueChange = { newValue ->
+                    // Only allow valid decimal numbers
+                    if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                        onMaxAmountChange(newValue)
+                    }
+                },
                 label = { Text("Max Amount") },
                 placeholder = { Text("No limit") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal
+                )
             )
+        }
+
+        // Show validation message if max is less than min
+        if (minAmount.isNotEmpty() && maxAmount.isNotEmpty()) {
+            val min = minAmount.toBigDecimalOrNull()
+            val max = maxAmount.toBigDecimalOrNull()
+            if (min != null && max != null && max < min) {
+                Text(
+                    text = "Maximum amount should be greater than minimum amount",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }
