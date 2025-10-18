@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchBar(
+fun AppSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     onSearch: (String) -> Unit,
@@ -28,37 +28,43 @@ fun SearchBar(
         focusRequester.requestFocus()
     }
 
+    // Use the new SearchBar API with inputField parameter
     SearchBar(
-        query = query,
-        onQueryChange = onQueryChange,
-        onSearch = {
-            onSearch(it)
-            keyboardController?.hide()
-        },
-        active = true,
-        onActiveChange = onActiveChange,
-        placeholder = { Text(placeholder) },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search"
+        inputField = {
+            SearchBarDefaults.InputField(
+                query = query,
+                onQueryChange = onQueryChange,
+                onSearch = {
+                    onSearch(it)
+                    keyboardController?.hide()
+                },
+                expanded = true,
+                onExpandedChange = onActiveChange,
+                placeholder = { Text(placeholder) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search"
+                    )
+                },
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
+                        IconButton(
+                            onClick = { onQueryChange("") }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear"
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.focusRequester(focusRequester)
             )
         },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(
-                    onClick = { onQueryChange("") }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear"
-                    )
-                }
-            }
-        },
-        modifier = modifier
-            .fillMaxWidth()
-            .focusRequester(focusRequester)
+        expanded = true,
+        onExpandedChange = onActiveChange,
+        modifier = modifier.fillMaxWidth()
     ) {
         // Search suggestions can be added here if needed
     }

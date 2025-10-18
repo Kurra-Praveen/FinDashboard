@@ -5,9 +5,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
+
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,8 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
-import com.kpr.fintrack.presentation.ui.components.SearchBar
+import com.kpr.fintrack.presentation.ui.components.AppSearchBar
 import com.kpr.fintrack.presentation.ui.components.FilterBottomSheet
+import com.kpr.fintrack.presentation.ui.components.SortType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,11 +33,12 @@ fun TransactionsScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showFilterSheet by remember { mutableStateOf(false) }
     var showSearchBar by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             if (showSearchBar) {
-                SearchBar(
+                AppSearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = viewModel::onSearchQueryChange,
                     onActiveChange = { isActive ->
@@ -72,6 +76,50 @@ fun TransactionsScreen(
                                 imageVector = Icons.Default.FilterList,
                                 contentDescription = "Filter"
                             )
+                        }
+
+                        // Sort button
+                        Box {
+                            IconButton(onClick = { showSortMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Sort,
+                                    contentDescription = "Sort"
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showSortMenu,
+                                onDismissRequest = { showSortMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Amount ↑") },
+                                    onClick = {
+                                        viewModel.applySort(SortType.AMOUNT_ASC)
+                                        showSortMenu = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Amount ↓") },
+                                    onClick = {
+                                        viewModel.applySort(SortType.AMOUNT_DESC)
+                                        showSortMenu = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Date ↑") },
+                                    onClick = {
+                                        viewModel.applySort(SortType.DATE_ASC)
+                                        showSortMenu = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Date ↓") },
+                                    onClick = {
+                                        viewModel.applySort(SortType.DATE_DESC)
+                                        showSortMenu = false
+                                    }
+                                )
+                            }
                         }
                     }
                 )
