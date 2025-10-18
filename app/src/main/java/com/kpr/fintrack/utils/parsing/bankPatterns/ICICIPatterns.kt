@@ -56,15 +56,15 @@ object ICICIPatterns {
             id = "icici_auto_pay_v1",
             bankName = "ICICI",
             regex = Pattern.compile(
-                """(Rs\\.?|INR)\\s?([\\d,]+\\.\\d{2})\\s+debited from\\s+(.+?)\\s+(Savings|Current)?\\s*Account\\s+(\\w+)\\s+on\\s+(\\d{2}-\\w{3}-\\d{2})\\s+towards\\s+((\\w+)\\s+(\\w+)\\s+(.+?))\\s+Ref No\\.(\\d+)""",
-                Pattern.CASE_INSENSITIVE
+                "(Rs\\.?|INR)\\s?([\\d,]+\\.\\d{2})\\s+debited from\\s+(.+?)\\s+(Savings|Current)?\\s*Account\\s+(\\w+)\\s+on\\s+(\\d{2}-\\w{3}-\\d{2})\\s+towards\\s+(.+?)\\s+Ref\\s+No\\.(\\d+)",
+                Pattern.MULTILINE or  Pattern.CASE_INSENSITIVE
             ),
             amountGroup = 2,
             accountGroup = 5,
             dateGroup = 6,
             transactionType = "debit",
             baseConfidence = 0.98f,
-            referenceGroup = 11,
+            referenceGroup = 8,
             merchantGroup = 7
         )
     )

@@ -73,8 +73,9 @@ class TransactionParser @Inject constructor(
         timestamp:  LocalDateTime
     ): ParseResult {
         val matcher = pattern.regex.matcher(message)
+        val isMatched = matcher.matches() || matcher.reset().find()
 
-        if (!matcher.find()) {
+        if (!isMatched) {
             return ParseResult.noMatch()
         }
 
