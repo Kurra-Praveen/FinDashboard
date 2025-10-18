@@ -10,19 +10,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.kpr.fintrack.ui.theme.FinTrackTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-    android.util.Log.d("MainActivity", "onCreate called")
+        android.util.Log.d(getString(R.string.tag_main_activity), getString(R.string.log_on_create_called))
         enableEdgeToEdge()
         setContent {
             FinTrackTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "Android",
+                        name = stringResource(R.string.greeting_name),
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -34,7 +35,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
-        text = "Hello $name!",
+        text = stringResource(R.string.greeting_text, name),
         modifier = modifier
     )
 }
@@ -43,6 +44,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview() {
     FinTrackTheme {
-        Greeting("Android")
+        Greeting(stringResource(R.string.greeting_name))
     }
 }

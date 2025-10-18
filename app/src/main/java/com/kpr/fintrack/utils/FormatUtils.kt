@@ -8,7 +8,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * 提供格式化功能的工具类
+ * A utility object that provides functions for formatting various data types,
+ * such as currencies and dates, based on the user's current locale.
  */
 object FormatUtils {
 
@@ -23,31 +24,50 @@ object FormatUtils {
         DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault())
 
     /**
-     * 将BigDecimal格式化为货币字符串
+     * Formats a BigDecimal as a currency string based on the user's default locale.
+     * For example, in the US locale, 1234.56 would be formatted as "$1,234.56".
+     *
+     * @return A locale-specific currency representation of the BigDecimal.
      */
     fun BigDecimal.formatAsCurrency(): String =
         currencyFormatter().format(this)
 
     /**
-     * 将Double格式化为货币字符串
+     * Formats a Double as a currency string based on the user's default locale.
+     *
+     * For example, in the US locale, 1234.56 becomes "$1,234.56".
+     * In the German locale, it becomes "1.234,56 €".
+     *
+     * @receiver The Double value to be formatted.
+     * @return A string representing the formatted currency value.
      */
     fun Double.formatAsCurrency(): String =
         currencyFormatter().format(this)
 
     /**
-     * 将LocalDate格式化为日期字符串
+     * Formats the LocalDate as a date string (e.g., "25 Dec 2023").
+     *
+     * @return A formatted string representation of the date.
      */
     fun LocalDate.formatDate(): String =
         this.format(dateFormatter())
 
     /**
-     * 将LocalDateTime格式化为日期字符串
+     * Formats the LocalDate as a date string (e.g., "01 Jan 2023").
+     * @return The formatted date string.
      */
     fun LocalDateTime.formatDate(): String =
         this.format(dateFormatter())
 
     /**
-     * 将LocalDate格式化为短日期字符串
+     * Formats a [LocalDate] into a short date string (e.g., "dd MMM").
+     *
+     * Example: `LocalDate.of(2023, 10, 27)` would be formatted as "27 Oct".
+     *
+     * The format pattern is "dd MMM" and uses the default [Locale].
+     *
+     * @receiver The [LocalDate] to format.
+     * @return A [String] representing the formatted short date.
      */
     fun LocalDate.formatShortDate(): String =
         this.format(shortDateFormatter())
