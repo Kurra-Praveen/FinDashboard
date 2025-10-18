@@ -148,10 +148,6 @@ Change log
 ----------
 - 2025-10-18: Created README with project overview, build/run instructions, filter/sort guidance, debugging and privacy notes.
 
-If you'd like, I can also:
-- Add example unit tests for the sorting-on-client optimization.
-- Document the exact DAO query and verify the min/max bug at the SQL level.
-- Create a small developer guide `docs/architecture.md` with diagrams.
 
 
 
