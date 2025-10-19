@@ -1,15 +1,15 @@
 package com.kpr.fintrack.data.repository
 
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
 import com.kpr.fintrack.data.database.dao.AccountDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dao.UpiAppDao
-import com.kpr.fintrack.data.database.entities.AccountEntity
-import kotlinx.coroutines.flow.first
-import com.kpr.fintrack.data.database.entities.CategoryEntity
-import com.kpr.fintrack.data.database.entities.TransactionEntity
-import com.kpr.fintrack.data.database.entities.UpiAppEntity
-import com.kpr.fintrack.domain.model.Account
+import com.kpr.fintrack.data.mapper.toDomainModel
+import com.kpr.fintrack.data.mapper.toEntity
 import com.kpr.fintrack.domain.model.AnalyticsSummary
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.CategorySpendingData
@@ -21,8 +21,10 @@ import com.kpr.fintrack.domain.model.WeeklySpendingData
 import com.kpr.fintrack.domain.repository.TransactionFilter
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -45,9 +47,23 @@ class TransactionRepositoryImpl @Inject constructor(
         android.util.Log.d("TransactionRepositoryImpl", "Repository initialized")
     }
 
-    override fun getAllTransactions(): Flow<List<Transaction>> {
-        return transactionDao.getAllTransactions().map { entities ->
-            entities.map { it.toDomainModel(accountDao) }
+    override fun getPaginatedTransactions(): Flow<PagingData<Transaction>> {
+        return Pager(
+            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+            pagingSourceFactory = { transactionDao.getPaginatedTransactions() }
+        ).flow.map { pagingData ->
+            pagingData.map { it.toDomainModel(accountDao) }
+        }
+    }
+
+    override fun getPaginatedTransactionsByAccountId(accountId: Long): Flow<PagingData<Transaction>> {
+        android.util.Log.d("TransactionRepositoryImpl", "getPaginatedTransactionsByAccountId called for accountId=$accountId")
+        return Pager(
+            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+            pagingSourceFactory = { transactionDao.getPaginatedTransactionsByAccountId(accountId) }
+        ).flow.map { pagingData ->
+            android.util.Log.d("TransactionRepositoryImpl", "Mapping paging data to domain model for accountId=$accountId")
+            pagingData.map { it.toDomainModel(accountDao) }
         }
     }
 
@@ -56,25 +72,19 @@ class TransactionRepositoryImpl @Inject constructor(
         endDate: LocalDateTime
     ): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByDateRange(startDate, endDate).map { entities ->
-            entities.map { it.toDomainModel(accountDao) }
+            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
         }
     }
 
     override fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByCategory(categoryId).map { entities ->
-            entities.map { it.toDomainModel(accountDao) }
-        }
-    }
-
-    override fun getTransactionsByAccountId(accountId: Long): Flow<List<Transaction>> {
-        return transactionDao.getTransactionsByAccountId(accountId).map { entities ->
-            entities.map { it.toDomainModel(accountDao) }
+            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
         }
     }
 
     override fun searchTransactions(query: String): Flow<List<Transaction>> {
         return transactionDao.searchTransactions(query).map { entities ->
-            entities.map { it.toDomainModel(accountDao) }
+            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
         }
     }
 
@@ -88,18 +98,18 @@ class TransactionRepositoryImpl @Inject constructor(
             isDebit = filter.isDebit,
             searchQuery = filter.searchQuery
         ).map { entities ->
-            entities.map { it.toDomainModel(accountDao) }
+            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
         }
     }
 
     override fun getRecentTransactions(limit: Int): Flow<List<Transaction>> {
         return transactionDao.getRecentTransactions(limit).map { entities ->
-            entities.map { it.toDomainModel(accountDao) }
+            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
         }
     }
 
     override suspend fun insertTransaction(transaction: Transaction): Long {
-        var result= transactionDao.insertTransaction(transaction.toEntity())
+        val result= transactionDao.insertTransaction(transaction.toEntity())
         //accountDao.getAccountById(transaction.toEntity().accountNumber)
         return result
 
@@ -307,110 +317,4 @@ class TransactionRepositoryImpl @Inject constructor(
             ?.key ?: "No data"
     }
 
-}
-
-// Extension functions for entity conversion
-private suspend fun TransactionEntity.toDomainModel(accountDao: AccountDao): Transaction {
-    // Note: In a real implementation, you'd want to fetch the category and upiApp from their DAOs
-    val defaultCategory = Category.getDefaultCategories().find { it.id == this.categoryId }
-        ?: Category.getDefaultCategories().last() // Default to "Other"
-
-    // Get account if accountId is not null
-    val account = accountId?.let { id ->
-        accountDao.getAccountById(id).first()?.toDomainModel()
-    }
-
-    return Transaction(
-        id = id,
-        amount = amount,
-        isDebit = isDebit,
-        merchantName = merchantName,
-        description = description,
-        category = defaultCategory,
-        date = date,
-        upiApp = null, // TODO: Fetch from UpiAppDao
-        account = account,
-        accountNumber = accountNumber,
-        referenceId = referenceId,
-        smsBody = smsBody,
-        sender = sender,
-        confidence = confidence,
-        isManuallyVerified = isManuallyVerified,
-        tags = tags.split(",").filter { it.isNotBlank() },
-        createdAt = createdAt,
-        updatedAt = updatedAt
-    )
-}
-
-private fun Transaction.toEntity(): TransactionEntity {
-    return TransactionEntity(
-        id = id,
-        amount = amount,
-        isDebit = isDebit,
-        merchantName = merchantName,
-        description = description,
-        categoryId = category.id,
-        date = date,
-        upiAppId = upiApp?.id,
-        accountId = account?.id,
-        accountNumber = accountNumber,
-        referenceId = referenceId,
-        smsBody = smsBody,
-        sender = sender,
-        confidence = confidence,
-        isManuallyVerified = isManuallyVerified,
-        tags = tags.joinToString(","),
-        createdAt = createdAt,
-        updatedAt = updatedAt
-    )
-}
-
-private fun CategoryEntity.toDomainModel(): Category {
-    return Category(
-        id = id,
-        name = name,
-        icon = icon,
-        color = color,
-        parentCategoryId = parentCategoryId,
-        isDefault = isDefault,
-        keywords = keywords.split(",").filter { it.isNotBlank() }
-    )
-}
-
-private fun Category.toEntity(): CategoryEntity {
-    return CategoryEntity(
-        id = id,
-        name = name,
-        icon = icon,
-        color = color,
-        parentCategoryId = parentCategoryId,
-        isDefault = isDefault,
-        keywords = keywords.joinToString(",")
-    )
-}
-
-private fun UpiAppEntity.toDomainModel(): UpiApp {
-    return UpiApp(
-        id = id,
-        name = name,
-        packageName = packageName,
-        senderPattern = senderPattern,
-        icon = icon
-    )
-}
-
-private fun AccountEntity.toDomainModel(): Account {
-    return Account(
-        id = id,
-        name = name,
-        accountNumber = accountNumber,
-        bankName = bankName,
-        currentBalance = currentBalance,
-        accountType = Account.AccountType.fromString(accountType),
-        isActive = isActive,
-        icon = icon,
-        color = color,
-        createdAt = createdAt,
-        updatedAt = updatedAt
-    )
 }

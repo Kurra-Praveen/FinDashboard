@@ -1,5 +1,6 @@
 package com.kpr.fintrack.data.database.dao
 
+import androidx.paging.PagingSource
 import androidx.room.*
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import kotlinx.coroutines.flow.Flow
@@ -10,7 +11,13 @@ import java.time.LocalDateTime
 interface TransactionDao {
 
     @Query("SELECT * FROM transactions ORDER BY date DESC")
-    fun getAllTransactions(): Flow<List<TransactionEntity>>
+    fun getPaginatedTransactions(): PagingSource<Int, TransactionEntity>
+
+    @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPaginatedTransactions(limit: Int, offset: Int): List<TransactionEntity>
+
+    @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY date DESC")
+    fun getPaginatedTransactionsByAccountId(accountId: Long): PagingSource<Int, TransactionEntity>
 
     @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun getTransactionsByDateRange(
@@ -20,9 +27,6 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY date DESC")
     fun getTransactionsByCategory(categoryId: Long): Flow<List<TransactionEntity>>
-    
-    @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY date DESC")
-    fun getTransactionsByAccountId(accountId: Long): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE accountId = :accountId AND date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     suspend fun getTransactionsByAccountIdAndDateRange(
@@ -40,7 +44,7 @@ interface TransactionDao {
             WITH RECURSIVE split(word, rest) AS (
                 SELECT '', :categoryIds || ',' 
                 UNION ALL
-                SELECT substr(rest, 0, instr(rest, ',')),
+                SELECT substr(rest, 0, instr(rest, ','))-1,
                     substr(rest, instr(rest, ',') + 1)
                 FROM split WHERE rest <> ''
             )

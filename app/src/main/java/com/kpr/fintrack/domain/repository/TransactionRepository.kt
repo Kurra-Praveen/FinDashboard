@@ -1,5 +1,6 @@
 package com.kpr.fintrack.domain.repository
 
+import androidx.paging.PagingData
 import com.kpr.fintrack.domain.model.AnalyticsSummary
 import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.domain.model.Category
@@ -13,10 +14,10 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 
 interface TransactionRepository {
-    fun getAllTransactions(): Flow<List<Transaction>>
+    fun getPaginatedTransactions(): Flow<PagingData<Transaction>>
+    fun getPaginatedTransactionsByAccountId(accountId: Long): Flow<PagingData<Transaction>>
     fun getTransactionsByDateRange(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<Transaction>>
     fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>>
-    fun getTransactionsByAccountId(accountId: Long): Flow<List<Transaction>>
     fun searchTransactions(query: String): Flow<List<Transaction>>
     fun getFilteredTransactions(filter: TransactionFilter): Flow<List<Transaction>>
     fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>>
@@ -43,8 +44,6 @@ interface TransactionRepository {
     // Add to TransactionRepository interface
     suspend fun getTransactionById(id: Long): Transaction?
 
-    // Add to TransactionRepositoryImpl
-// Add to TransactionRepository interface
     suspend fun getMonthlySpendingData(monthsBack: Int = 6): List<MonthlySpendingData>
     suspend fun getCategorySpendingData(startDate: LocalDateTime, endDate: LocalDateTime): List<CategorySpendingData>
     suspend fun getWeeklySpendingData(weeksBack: Int = 4): List<WeeklySpendingData>

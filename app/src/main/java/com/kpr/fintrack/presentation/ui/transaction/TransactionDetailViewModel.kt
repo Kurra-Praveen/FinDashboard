@@ -32,19 +32,14 @@ class TransactionDetailViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = TransactionDetailUiState(isLoading = true)
+                val transaction = transactionRepository.getTransactionById(transactionId)
+                currentTransaction = transaction
 
-                // In a real implementation, you'd have a method to get transaction by ID
-                // For now, we'll simulate it by getting all transactions and finding the one
-                transactionRepository.getAllTransactions().collect { transactions ->
-                    val transaction = transactions.find { it.id == transactionId }
-                    currentTransaction = transaction
-
-                    _uiState.value = TransactionDetailUiState(
-                        isLoading = false,
-                        transaction = transaction,
-                        error = if (transaction == null) "Transaction not found" else null
-                    )
-                }
+                _uiState.value = TransactionDetailUiState(
+                    isLoading = false,
+                    transaction = transaction,
+                    error = if (transaction == null) "Transaction not found" else null
+                )
             } catch (e: Exception) {
                 _uiState.value = TransactionDetailUiState(
                     isLoading = false,
