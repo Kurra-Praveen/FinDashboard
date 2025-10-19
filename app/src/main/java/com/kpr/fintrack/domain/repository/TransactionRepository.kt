@@ -19,7 +19,7 @@ interface TransactionRepository {
     fun getTransactionsByDateRange(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<Transaction>>
     fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>>
     fun searchTransactions(query: String): Flow<List<Transaction>>
-    fun getFilteredTransactions(filter: TransactionFilter): Flow<List<Transaction>>
+    fun getFilteredTransactions(filter: TransactionFilter): Flow<PagingData<Transaction>>
     fun getRecentTransactions(limit: Int = 10): Flow<List<Transaction>>
 
     suspend fun insertTransaction(transaction: Transaction): Long
@@ -60,5 +60,6 @@ data class TransactionFilter(
     val minAmount: BigDecimal? = null,
     val maxAmount: BigDecimal? = null,
     val isDebit: Boolean? = null,
-    val searchQuery: String? = null
+    val searchQuery: String? = null,
+    val sortOrder: String? = null
 )
