@@ -9,6 +9,7 @@ import com.kpr.fintrack.domain.repository.TransactionFilter
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import com.kpr.fintrack.presentation.ui.components.SortType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,20 +34,31 @@ class TransactionsViewModel @Inject constructor(
     private val _currentFilter = MutableStateFlow(TransactionFilter())
     private val _currentSort = MutableStateFlow(SortType.DATE_DESC)
 
-    val transactions: StateFlow<PagingData<Transaction>> = transactionRepository
-        .getPaginatedTransactions()
-        .cachedIn(viewModelScope)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), PagingData.empty())
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val transactions: Flow<PagingData<Transaction>> = combine(
+        _searchQuery,
+        _currentFilter,
+        _currentSort
+    ) { searchQuery, filter, sort ->
+        val finalFilter = filter.copy(
+            searchQuery = searchQuery.ifBlank { null },
+            sortOrder = sort.toSortOrderString()
+        )
+        android.util.Log.d("TransactionsViewModel", "Applying filter: $finalFilter")
+        finalFilter
+    }.flatMapLatest { filter ->
+        transactionRepository.getFilteredTransactions(filter)
+    }.cachedIn(viewModelScope)
 
     val uiState: StateFlow<TransactionsUiState> = combine(
         transactions,
         _searchQuery,
         _currentFilter,
         _currentSort
-    ) { transactions, searchQuery, filter, sort ->
+    ) { transactionsData, searchQuery, filter, sort ->
         TransactionsUiState(
             isLoading = false,
-            transactions = transactions,
+            transactions = transactionsData,
             searchQuery = searchQuery,
             currentFilter = filter,
             hasActiveFilters = hasActiveFilter(filter) || searchQuery.isNotBlank(),
@@ -79,6 +91,15 @@ class TransactionsViewModel @Inject constructor(
 
     fun applySort(sortType: SortType) {
         _currentSort.value = sortType
+    }
+
+    private fun SortType.toSortOrderString(): String {
+        return when (this) {
+            SortType.DATE_ASC -> "date_asc"
+            SortType.DATE_DESC -> "date_desc"
+            SortType.AMOUNT_ASC -> "amount_asc"
+            SortType.AMOUNT_DESC -> "amount_desc"
+        }
     }
 
     private fun hasActiveFilter(filter: TransactionFilter): Boolean {

@@ -88,17 +88,24 @@ class TransactionRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getFilteredTransactions(filter: TransactionFilter): Flow<List<Transaction>> {
-        return transactionDao.getFilteredTransactions(
-            categoryIds = filter.categoryIds?.joinToString(",") ?: "",
-            startDate = filter.startDate,
-            endDate = filter.endDate,
-            minAmount = filter.minAmount,
-            maxAmount = filter.maxAmount,
-            isDebit = filter.isDebit,
-            searchQuery = filter.searchQuery
-        ).map { entities ->
-            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+    override fun getFilteredTransactions(filter: TransactionFilter): Flow<PagingData<Transaction>> {
+        android.util.Log.d("TransactionRepositoryImpl", "getFilteredTransactions called with filter: $filter")
+        return Pager(
+            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+            pagingSourceFactory = {
+                transactionDao.getFilteredTransactions(
+                    categoryIds = filter.categoryIds?.joinToString(",") ?: "",
+                    startDate = filter.startDate,
+                    endDate = filter.endDate,
+                    minAmount = filter.minAmount,
+                    maxAmount = filter.maxAmount,
+                    isDebit = filter.isDebit,
+                    searchQuery = filter.searchQuery,
+                    sortOrder = filter.sortOrder ?: "desc"
+                )
+            }
+        ).flow.map { pagingData ->
+            pagingData.map { it.toDomainModel(accountDao) }
         }
     }
 

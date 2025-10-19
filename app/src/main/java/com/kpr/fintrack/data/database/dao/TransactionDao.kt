@@ -44,11 +44,11 @@ interface TransactionDao {
             WITH RECURSIVE split(word, rest) AS (
                 SELECT '', :categoryIds || ',' 
                 UNION ALL
-                SELECT substr(rest, 0, instr(rest, ','))-1,
+                SELECT substr(rest, 0, instr(rest, ',')) ,
                     substr(rest, instr(rest, ',') + 1)
                 FROM split WHERE rest <> ''
             )
-            SELECT CAST(trim(word) AS INTEGER) FROM split WHERE word <> ''
+            SELECT CAST(trim(word) AS INTEGER) FROM split WHERE word <> '' AND word <> ''
         ))
         AND (:startDate IS NULL OR date >= :startDate)
         AND (:endDate IS NULL OR date <= :endDate)
@@ -56,7 +56,11 @@ interface TransactionDao {
         AND (:maxAmount IS NULL OR ROUND(CAST(amount AS DECIMAL), 2) <= ROUND(CAST(:maxAmount AS DECIMAL), 2))
         AND (:isDebit IS NULL OR isDebit = :isDebit)
         AND (:searchQuery IS NULL OR merchantName LIKE '%' || :searchQuery || '%' OR description LIKE '%' || :searchQuery || '%')
-        ORDER BY date DESC
+        ORDER BY
+            CASE WHEN :sortOrder = 'date_asc' THEN date END ASC,
+            CASE WHEN :sortOrder = 'date_desc' THEN date END DESC,
+            CASE WHEN :sortOrder = 'amount_asc' THEN CAST(amount AS REAL) END ASC,
+            CASE WHEN :sortOrder = 'amount_desc' THEN CAST(amount AS REAL) END DESC
     """)
     fun getFilteredTransactions(
         categoryIds: String = "",
@@ -65,8 +69,9 @@ interface TransactionDao {
         minAmount: BigDecimal? = null,
         maxAmount: BigDecimal? = null,
         isDebit: Boolean? = null,
-        searchQuery: String? = null
-    ): Flow<List<TransactionEntity>>
+        searchQuery: String? = null,
+        sortOrder: String = "date_desc"
+    ): PagingSource<Int, TransactionEntity>
 
     @Query("SELECT SUM(amount) FROM transactions WHERE isDebit = :isDebit AND date BETWEEN :startDate AND :endDate")
     suspend fun getTotalAmountByType(
