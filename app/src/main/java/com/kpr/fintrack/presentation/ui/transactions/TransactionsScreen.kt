@@ -2,14 +2,11 @@ package com.kpr.fintrack.presentation.ui.transactions
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
-
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,9 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.kpr.fintrack.presentation.ui.components.AppSearchBar
 import com.kpr.fintrack.presentation.ui.components.FilterBottomSheet
+import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
 import com.kpr.fintrack.presentation.ui.components.SortType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,8 +28,8 @@ fun TransactionsScreen(
     onTransactionClick: (Long) -> Unit,
     viewModel: TransactionsViewModel = hiltViewModel()
 ) {
-        android.util.Log.d("TransactionsScreen", "Composable entered")
     val uiState by viewModel.uiState.collectAsState()
+    val transactions = viewModel.transactions.collectAsLazyPagingItems()
     var showFilterSheet by remember { mutableStateOf(false) }
     var showSearchBar by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
@@ -44,7 +43,7 @@ fun TransactionsScreen(
                     onActiveChange = { isActive ->
                         if (!isActive) showSearchBar = false
                     },
-                    onSearch = viewModel::onSearch,
+                    onSearch = {},
                     placeholder = "Search transactions..."
                 )
             } else {
@@ -127,8 +126,8 @@ fun TransactionsScreen(
         }
     ) { paddingValues ->
 
-        when {
-            uiState.isLoading -> {
+        when (val refreshState = transactions.loadState.refresh) {
+            is LoadState.Loading -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -136,8 +135,8 @@ fun TransactionsScreen(
                     CircularProgressIndicator()
                 }
             }
-
-            uiState.error != null -> {
+            is LoadState.Error -> {
+                val error = refreshState.error
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -151,70 +150,81 @@ fun TransactionsScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = uiState.error.toString(),
+                            text = error.localizedMessage ?: "An unexpected error occurred",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.refresh() }) {
+                        Button(onClick = { transactions.retry() }) {
                             Text("Retry")
                         }
                     }
                 }
             }
-
-            uiState.transactions.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+            is LoadState.NotLoading -> {
+                if (transactions.itemCount == 0) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "No transactions found",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = if (uiState.hasActiveFilters) {
-                                "Try adjusting your filters"
-                            } else {
-                                "Transactions will appear here automatically"
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-
-                    if (uiState.hasActiveFilters) {
-                        item {
-                            ActiveFiltersCard(
-                                filterCount = uiState.activeFilterCount,
-                                onClearFilters = viewModel::clearAllFilters
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No transactions found",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (uiState.hasActiveFilters) {
+                                    "Try adjusting your filters"
+                                } else {
+                                    "Transactions will appear here automatically"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
 
-                    items(
-                        items = uiState.transactions,
-                        key = { it.id }
-                    ) { transaction ->
-                        RecentTransactionItem(
-                            transaction = transaction,
-                            onClick = { onTransactionClick(transaction.id) }
-                        )
+                        if (uiState.hasActiveFilters) {
+                            item {
+                                ActiveFiltersCard(
+                                    filterCount = uiState.activeFilterCount,
+                                    onClearFilters = viewModel::clearAllFilters
+                                )
+                            }
+                        }
+
+                        items(transactions.itemCount, key = { index -> transactions.peek(index)?.id ?: index }) { index ->
+                            val transaction = transactions[index]
+                            transaction?.let {
+                                RecentTransactionItem(
+                                    transaction = it,
+                                    onClick = { onTransactionClick(it.id) }
+                                )
+                            }
+                        }
+
+                        if (transactions.loadState.append is LoadState.Loading) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp), contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
                     }
                 }
             }

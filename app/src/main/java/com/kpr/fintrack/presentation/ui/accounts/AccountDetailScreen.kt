@@ -2,10 +2,8 @@ package com.kpr.fintrack.presentation.ui.accounts
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -15,10 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.LoadState
 import com.kpr.fintrack.presentation.ui.components.AccountSummaryCard
 import com.kpr.fintrack.presentation.ui.components.EmptyStateMessage
 import com.kpr.fintrack.presentation.ui.components.TransactionItem
-import com.kpr.fintrack.utils.extensions.formatCurrency
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,8 +30,13 @@ fun AccountDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
-    
+
+    // transactionsFlow is a Flow<PagingData<Transaction>> exposed by the ViewModel
+    val transactionsFlow by viewModel.transactions.collectAsState()
+    val transactions = transactionsFlow.collectAsLazyPagingItems()
+
     LaunchedEffect(accountId) {
+        Log.d("AccountDetailScreen", "LaunchedEffect accountId=$accountId - loading account and transactions")
         viewModel.loadAccount(accountId)
         viewModel.loadAccountTransactions(accountId)
     }
@@ -79,46 +84,89 @@ fun AccountDetailScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
-                        uiState.account?.let { account ->
-                            AccountSummaryCard(account = account)
+                when (val refreshState = transactions.loadState.refresh) {
+                    is LoadState.Loading -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
-                    
-                    item {
-                        Text(
-                            text = "Recent Transactions",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-                    
-                    if (uiState.transactions.isEmpty()) {
-                        item {
-                            EmptyStateMessage(
-                                message = "No transactions",
-                                subMessage = "This account has no transactions yet"
-                            )
+                    is LoadState.Error -> {
+                        val error = refreshState.error
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "Error loading transactions",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = error.localizedMessage ?: "An unexpected error occurred",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { transactions.retry() }) {
+                                    Text("Retry")
+                                }
+                            }
                         }
-                    } else {
-                        items(uiState.transactions) { transaction ->
-                            TransactionItem(
-                                transaction = transaction,
-                                onClick = { /* Navigate to transaction detail */ }
-                            )
+                    }
+                    is LoadState.NotLoading -> {
+                        if (transactions.itemCount == 0) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                EmptyStateMessage(
+                                    message = "No transactions",
+                                    subMessage = "This account has no transactions yet"
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                item {
+                                    uiState.account?.let { account ->
+                                        AccountSummaryCard(account = account)
+                                    }
+                                }
+
+                                item {
+                                    Text(
+                                        text = "Recent Transactions",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    )
+                                }
+
+                                // Paging items
+                                items(count = transactions.itemCount) { index ->
+                                    val transaction = transactions[index]
+                                    transaction?.let { tx ->
+                                        TransactionItem(transaction = tx, onClick = { /* navigate */ })
+                                    }
+                                }
+
+                                if (transactions.loadState.append is LoadState.Loading) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp), contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator()
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
-    
+
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
