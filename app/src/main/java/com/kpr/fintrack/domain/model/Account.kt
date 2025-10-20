@@ -7,7 +7,7 @@ data class Account(
     val id: Long = 0,
     val name: String,
     val accountNumber: String,
-    val bankName: String,
+    var bankName: String,
     val currentBalance: BigDecimal = BigDecimal.ZERO,
     val accountType: AccountType,
     val isActive: Boolean = true,

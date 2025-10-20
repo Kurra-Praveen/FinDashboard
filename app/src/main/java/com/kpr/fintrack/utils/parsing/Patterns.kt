@@ -5,6 +5,7 @@ import com.kpr.fintrack.utils.parsing.bankPatterns.HDFCPatterns
 import com.kpr.fintrack.utils.parsing.bankPatterns.ICICIPatterns
 import com.kpr.fintrack.utils.parsing.bankPatterns.INDUSINDPatterns
 import com.kpr.fintrack.utils.parsing.bankPatterns.SBIPatterns
+import com.kpr.fintrack.utils.parsing.upiPatterns.PhonePePatterns
 
 class Patterns {
 
@@ -15,7 +16,8 @@ class Patterns {
                 ICICIPatterns.getICICIPatterns(),
                 INDUSINDPatterns.getIndusindPatterns(),
                 BOIPatterns.getBOIPatterns(),
-                SBIPatterns.getSBIPatterns()
+                SBIPatterns.getSBIPatterns(),
+                PhonePePatterns.getPhonePePatterns()
             ).flatten()
         }
     }

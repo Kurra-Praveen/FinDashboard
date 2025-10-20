@@ -1,5 +1,6 @@
 package com.kpr.fintrack.utils.parsing
 
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.UpiApp
 import java.math.BigDecimal
@@ -31,7 +32,8 @@ class TransactionParser @Inject constructor(
         val upiApp: UpiApp? = null,
         val suggestedCategory: Category? = null,
         val confidence: Float = 0f,
-        val extractedDate: LocalDateTime? = null
+        val extractedDate: LocalDateTime? = null,
+        val account: Account?=null
     ) {
         companion object {
             fun noMatch() = ParseResult(isFinancialTransaction = false)

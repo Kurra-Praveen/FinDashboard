@@ -62,7 +62,7 @@ data class Category(
                         icon = "upi_icon",
                         color = "#96CEB4",
                         isDefault = true,
-                        keywords = listOf("atm", "cash", "withdrawal", "bank")
+                        keywords = listOf("atm", "cash", "withdrawal", "bank","received")
                     ), Category(
                         id = 5L,
                         name = "Income",
