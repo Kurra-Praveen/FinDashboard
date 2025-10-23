@@ -10,18 +10,25 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.presentation.theme.CreditColor
 import com.kpr.fintrack.presentation.theme.DebitColor
 import com.kpr.fintrack.presentation.ui.components.CategorySelectionBottomSheet
 import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
-import com.kpr.fintrack.utils.extensions.formatCurrency
+import com.kpr.fintrack.utils.FinTrackLogger
+import com.kpr.fintrack.utils.image.ReceiptImageProcessor
+import com.kpr.fintrack.utils.extensions.*
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.Image
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.window.Dialog
 import java.time.format.DateTimeFormatter
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -194,6 +201,9 @@ private fun TransactionDetailContent(
     onVerificationToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showReceiptDialog by remember { mutableStateOf(false) }
+    var showMessageDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -242,6 +252,128 @@ private fun TransactionDetailContent(
             )
         )
 
+        // Decide whether to show the receipt image or the original SMS body
+        val hasImage = !transaction.receiptImagePath.isNullOrBlank()
+        val smsMarked = transaction.smsBody.contains("Extracted From UPI App", ignoreCase = true)
+
+        when {
+            // Prefer image when image exists. Also prefer image when SMS indicates it was extracted and an image exists.
+            hasImage -> {
+                FinTrackLogger.d(
+                    "FinTrack_Image",
+                    "Showing receipt image for transaction: ${transaction.referenceId ?: "N/A"} (smsMarked=$smsMarked)"
+                )
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Receipt",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Tap to view transaction receipt",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Button(onClick = {
+                            FinTrackLogger.d(
+                                "FinTrack_Image",
+                                "View transaction (receipt) clicked for transaction: ${transaction.referenceId ?: "N/A"}"
+                            )
+                            showReceiptDialog = true
+                        }) {
+                            Text("View Transaction")
+                        }
+                    }
+                }
+            }
+
+            // No image available but SMS body exists — show SMS body
+            transaction.smsBody.isNotBlank() -> {
+                FinTrackLogger.d(
+                    "FinTrack_Image",
+                    "Showing SMS body for transaction: ${transaction.referenceId ?: "N/A"} (smsMarked=$smsMarked)"
+                )
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Original Message",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = if (transaction.smsBody.length > 200) transaction.smsBody.take(
+                                    200
+                                ) + "..." else transaction.smsBody,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = buildAnnotatedString {
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Normal)) {
+                                        append("From ")
+                                    }
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.SemiBold)) {
+                                        append(transaction.sender)
+                                    }
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Normal)) {
+                                        append(" on ")
+                                    }
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.SemiBold)) {
+                                        append(transaction.date.toString())
+                                    }
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+//                        Button(onClick = {
+//                            FinTrackLogger.d(
+//                                "FinTrack_Image",
+//                                "View original message clicked for transaction: ${transaction.referenceId ?: "N/A"}"
+//                            )
+//                            showMessageDialog = true
+//                        }) {
+//                            Text("View message")
+//                        }
+                    }
+                }
+            }
+
+            else -> {
+                // Neither image nor message available — show placeholder
+                FinTrackLogger.d(
+                    "FinTrack_Image",
+                    "No receipt image or SMS body for transaction: ${transaction.referenceId ?: "N/A"}"
+                )
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "No receipt or message available",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
 
         // Category Section
         Card(
@@ -399,36 +531,75 @@ private fun TransactionDetailContent(
             }
         }
 
-        // Original SMS
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Original Message",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = transaction.smsBody,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "From: ${transaction.sender}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        // Fullscreen receipt dialog
+        if (showReceiptDialog && !transaction.receiptImagePath.isNullOrBlank()) {
+            Dialog(onDismissRequest = { showReceiptDialog = false }) {
+                val file = File(transaction.receiptImagePath)
+                val bitmap = ReceiptImageProcessor.decodeFileToBitmap(file)
+                if (bitmap != null) {
+                    FinTrackLogger.d(
+                        "FinTrack_Image",
+                        "Loaded receipt for preview: ${file.absolutePath}"
+                    )
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Receipt Image",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight()
+                        )
+                        IconButton(
+                            onClick = { showReceiptDialog = false },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                        }
+                    }
+                } else {
+                    FinTrackLogger.w(
+                        "FinTrack_Image",
+                        "Failed to load receipt image for preview: ${file.absolutePath}"
+                    )
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Unable to load receipt image")
+                    }
+                }
             }
         }
+
+        // Fullscreen message dialog
+//        if (showMessageDialog && transaction.smsBody.isNotBlank()) {
+//            Dialog(onDismissRequest = { showMessageDialog = false }) {
+//                Box(modifier = Modifier
+//                    .fillMaxSize()
+//                    .padding(16.dp)) {
+//                    Column(modifier = Modifier.fillMaxSize()) {
+//                        Text(
+//                            text = "Original Message",
+//                            style = MaterialTheme.typography.titleLarge,
+//                            fontWeight = FontWeight.Bold
+//                        )
+//                        Spacer(modifier = Modifier.height(12.dp))
+//                        Text(
+//                            text = transaction.smsBody,
+//                            style = MaterialTheme.typography.bodyLarge
+//                        )
+//                    }
+//
+//                    IconButton(
+//                        onClick = { showMessageDialog = false },
+//                        modifier = Modifier
+//                            .align(Alignment.TopEnd)
+//                            .padding(16.dp)
+//                    ) {
+//                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+//                    }
+//                }
+//            }
+//        }
     }
 }
 

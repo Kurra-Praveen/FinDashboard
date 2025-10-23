@@ -3,8 +3,6 @@ package com.kpr.fintrack.presentation.ui.accounts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kpr.fintrack.domain.model.Account
-import com.kpr.fintrack.domain.model.Transaction
-import com.kpr.fintrack.domain.model.TransactionType
 import com.kpr.fintrack.domain.repository.AccountRepository
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

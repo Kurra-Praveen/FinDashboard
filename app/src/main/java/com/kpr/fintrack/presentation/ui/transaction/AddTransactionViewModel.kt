@@ -12,13 +12,17 @@ import com.kpr.fintrack.domain.model.TransactionFormData
 import com.kpr.fintrack.domain.repository.AccountRepository
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileOutputStream
 import java.time.LocalDateTime
 import javax.inject.Inject
+import com.kpr.fintrack.utils.image.ReceiptImageProcessor
+import com.kpr.fintrack.utils.FinTrackLogger
 
 data class AddTransactionUiState(
     val formData: TransactionFormData = TransactionFormData(),
@@ -35,19 +39,20 @@ data class AddTransactionUiState(
 @HiltViewModel
 class AddTransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddTransactionUiState())
     val uiState: StateFlow<AddTransactionUiState> = _uiState.asStateFlow()
-    
+
     private val _accounts = MutableStateFlow<List<Account>>(emptyList())
     val accounts: StateFlow<List<Account>> = _accounts.asStateFlow()
-    
+
     init {
         loadAccounts()
     }
-    
+
     private fun loadAccounts() {
         viewModelScope.launch {
             accountRepository.getAllActiveAccounts().collect { accountsList ->
@@ -117,7 +122,7 @@ class AddTransactionViewModel @Inject constructor(
         val newFormData = _uiState.value.formData.copy(description = description)
         _uiState.value = _uiState.value.copy(formData = newFormData)
     }
-    
+
     fun onAccountChanged(account: Account?) {
         val newFormData = _uiState.value.formData.copy(account = account)
         _uiState.value = _uiState.value.copy(formData = newFormData)
@@ -170,7 +175,47 @@ class AddTransactionViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isSaving = true)
 
-                val transaction = _uiState.value.formData.toTransaction()
+                // Compress and persist receipt image if present
+                val currentForm = _uiState.value.formData
+                var finalReceiptPath: String? = currentForm.receiptImagePath
+
+                if (!currentForm.receiptImagePath.isNullOrBlank()) {
+                    try {
+                        val pathStr = currentForm.receiptImagePath
+
+                        // pathStr is non-null because of the outer check
+                        if (pathStr!!.startsWith("content://") || pathStr.startsWith("file://")) {
+                            val uri = Uri.parse(pathStr)
+                            val receiptDir = File(context.cacheDir, "receipts").apply { mkdirs() }
+                            val tempFile = File(receiptDir, "capture_${System.currentTimeMillis()}.tmp")
+
+                            context.contentResolver.openInputStream(uri)?.use { input ->
+                                FileOutputStream(tempFile).use { out ->
+                                    input.copyTo(out)
+                                }
+                            }
+
+                            val compressed = ReceiptImageProcessor.compressAndSaveToAppStorage(context, tempFile)
+                            kotlin.runCatching { tempFile.delete() }
+                            finalReceiptPath = compressed.absolutePath
+                            FinTrackLogger.d("FinTrack_Image", "Compressed receipt saved: $finalReceiptPath")
+                        } else {
+                            // Treat as local file path
+                            val f = File(pathStr)
+                            if (f.exists()) {
+                                val compressed = ReceiptImageProcessor.compressAndSaveToAppStorage(context, f)
+                                finalReceiptPath = compressed.absolutePath
+                                FinTrackLogger.d("FinTrack_Image", "Compressed receipt saved from file: $finalReceiptPath")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        FinTrackLogger.e("FinTrack_Image", "Failed to compress receipt image", e)
+                        finalReceiptPath = null
+                    }
+                }
+
+                val newFormData = currentForm.copy(receiptImagePath = finalReceiptPath)
+                val transaction = newFormData.toTransaction()
 
                 if (transaction.id == 0L) {
                     // New transaction
@@ -189,6 +234,7 @@ class AddTransactionViewModel @Inject constructor(
                     isSaving = false,
                     errorMessage = e.message ?: "Failed to save transaction"
                 )
+                FinTrackLogger.e("FinTrack_Image", "Error saving transaction", e)
             }
         }
     }

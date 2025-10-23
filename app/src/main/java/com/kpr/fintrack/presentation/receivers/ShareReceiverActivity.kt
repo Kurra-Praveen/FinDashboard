@@ -3,6 +3,7 @@ package com.kpr.fintrack.presentation.receivers
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,7 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class ShareReceiverActivity : ComponentActivity() {
 
-    private var pendingImageUri: android.net.Uri? = null
+    private var pendingImageUri: Uri? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -40,7 +41,7 @@ class ShareReceiverActivity : ComponentActivity() {
         when {
             intent?.action == Intent.ACTION_SEND &&
             intent?.type?.startsWith("image/") == true -> {
-                intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)?.let { uri ->
+                intent.getParcelableExtra(Intent.EXTRA_STREAM, android.net.Uri::class.java)?.let { uri ->
                     checkPermissionsAndProcess(uri)
                 } ?: run {
                     FinTrackLogger.e(TAG, "No image URI in intent extras")
@@ -54,7 +55,7 @@ class ShareReceiverActivity : ComponentActivity() {
         }
     }
 
-    private fun checkPermissionsAndProcess(uri: android.net.Uri) {
+    private fun checkPermissionsAndProcess(uri: Uri) {
         val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
         } else {
@@ -75,8 +76,22 @@ class ShareReceiverActivity : ComponentActivity() {
         }
     }
 
-    private fun handleSharedImage(uri: android.net.Uri) {
+    private fun handleSharedImage(uri: Uri) {
         FinTrackLogger.Receipt.logServiceEvent("Received shared image", "URI: $uri")
+
+        // Try to take persistable URI permission to avoid SecurityException when service accesses the URI
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+                FinTrackLogger.d(TAG, "Persistable URI permission taken for $uri")
+            }
+        } catch (e: Exception) {
+            FinTrackLogger.w(TAG, "Could not take persistable URI permission: ${e.message}")
+        }
+
         ImageImportService.startService(this, uri)
         finish()
     }

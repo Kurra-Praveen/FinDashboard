@@ -89,7 +89,7 @@ class ImageTransactionParser @Inject constructor(
     private fun extractAmount(matcher: Matcher, group: Int): BigDecimal? {
         return try {
             if (group > 0 && group <= matcher.groupCount()) {
-                val amountStr = matcher.group(group)?.replace(",", "")?.replace("Rs.", "")?.replace("INR", "")?.trim()
+                val amountStr = matcher.group(group)?.replace(",", "")?.replace("Rs.", "")?.replace("INR", "")?.replace("T","")?.trim()
                 amountStr?.toBigDecimalOrNull()
             } else null
         } catch (e: Exception) {

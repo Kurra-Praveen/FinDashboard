@@ -11,14 +11,11 @@ import androidx.core.app.NotificationCompat
 import com.kpr.fintrack.R
 import com.kpr.fintrack.data.datasource.ImageProcessingResult
 import com.kpr.fintrack.data.datasource.ImageReceiptDataSource
-import com.kpr.fintrack.domain.model.Account
-import com.kpr.fintrack.domain.repository.AccountRepository
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import com.kpr.fintrack.utils.FinTrackLogger
 import com.kpr.fintrack.utils.logging.SecureLogger
 import com.kpr.fintrack.utils.parsing.CategoryMatcher
 import com.kpr.fintrack.utils.parsing.ImageTransactionParser
-import com.kpr.fintrack.utils.parsing.TransactionParser
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +37,7 @@ class ImageImportService : Service() {
     lateinit var imageTransactionParser: ImageTransactionParser
 
     @Inject
-    lateinit var accountRepository: AccountRepository
+    lateinit var accountRepository: com.kpr.fintrack.domain.repository.AccountRepository
 
     @Inject
     lateinit var categoryMatcher: CategoryMatcher
@@ -103,6 +100,8 @@ class ImageImportService : Service() {
                                     upiApp = parseResult.upiApp
                                 )
 
+                                val receiptSource = determineReceiptSource(result.text)
+
                                 val transaction = com.kpr.fintrack.domain.model.Transaction(
                                     amount = parseResult.amount ?: return,
                                     isDebit = parseResult.isDebit ?: true,
@@ -113,12 +112,15 @@ class ImageImportService : Service() {
                                     upiApp = parseResult.upiApp,
                                     accountNumber = parseResult.accountNumber,
                                     referenceId = parseResult.referenceId,
-                                    smsBody = "Extracted From UPI App" + parseResult.upiApp?.name,
+                                    smsBody = "Extracted From UPI App " + parseResult.upiApp?.name,
                                     sender = "Extracted From UPI App" + parseResult.upiApp?.name,
                                     confidence = parseResult.confidence,
-                                    account = parseResult.account
+                                    account = parseResult.account,
+                                    receiptImagePath = result.savedFilePath,
+                                    receiptSource = receiptSource
                                 )
-
+                                FinTrackLogger.d(TAG, "Inserting transaction : $transaction")
+                                FinTrackLogger.d(TAG, "Inserting transaction with receipt path: ${result.savedFilePath}")
                                 transactionRepository.insertTransaction(transaction)
                                 showSuccessNotification()
                             }
@@ -128,7 +130,7 @@ class ImageImportService : Service() {
                         }
 
                     } catch (e: Exception) {
-                        FinTrackLogger.w(TAG, "Failed to parse transaction from OCR text")
+                        FinTrackLogger.w(TAG, "Failed to parse transaction from OCR text ${e.stackTrace}",e)
                         showFailureNotification("Could not parse transaction details")
                     }
                 }
@@ -201,6 +203,7 @@ class ImageImportService : Service() {
         fun startService(context: Context, imageUri: Uri) {
             val intent = Intent(context, ImageImportService::class.java).apply {
                 putExtra(EXTRA_IMAGE_URI, imageUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startForegroundService(intent)
         }
