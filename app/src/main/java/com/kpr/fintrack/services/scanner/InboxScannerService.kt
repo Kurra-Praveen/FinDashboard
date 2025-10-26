@@ -107,7 +107,7 @@ class InboxScannerService : Service() {
             try {
                 secureLogger.i("INBOX_SCANNER", "Starting inbox scan")
 
-                val messages = smsDataSource.getAllSmsMessages().take(300)
+                val messages = smsDataSource.getAllSmsMessages().take(10)
                 _scanProgress.value = ScanProgress(total = messages.size)
 
                 updateNotification(0, messages.size)
@@ -144,6 +144,17 @@ class InboxScannerService : Service() {
                                         // First try to find existing account
                                         val existingAccount = accountRepository.getAccountByNumber(accountNumber).first()
                                         if (existingAccount != null) {
+                                            if (existingAccount.bankName.equals("Bank", ignoreCase = true)) {
+                                                // Update bank name if it's generic
+                                                val updatedBankName = extractBankNameFromSms(
+                                                    smsMessage.sender,
+                                                    smsMessage.body
+                                                )
+                                                val updatedAccount = existingAccount.copy(bankName = updatedBankName)
+                                                accountRepository.updateAccount(updatedAccount)
+                                                secureLogger.i("SMS_RECEIVER", "Updated account bank name to: $updatedBankName for account number: $accountNumber")
+                                                updatedAccount
+                                            }
                                             existingAccount
                                         } else {
                                             // Create new account if not found

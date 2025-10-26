@@ -147,8 +147,8 @@ dependencies {
     implementation(libs.accompanist.permissions)
 
     // ML Kit Text Recognition
-    implementation("com.google.mlkit:text-recognition:16.0.0")
-
+    //implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
     // Testing
     testImplementation(libs.bundles.testing)
     testImplementation(libs.robolectric)

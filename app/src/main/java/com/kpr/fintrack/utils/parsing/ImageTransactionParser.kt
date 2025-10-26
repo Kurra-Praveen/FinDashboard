@@ -239,51 +239,6 @@ class ImageTransactionParser @Inject constructor(
             val accountNumber = extractAccountNumber(matcher, pattern.accountGroup)
             val isDebit = determineTransactionType(visualText, pattern.transactionType)
             val dateReceived=extractDate(matcher, pattern.dateGroup)
-            val bankName=extractBankName(matcher, pattern.bankNameGroup,accountNumber)
-            var newAccount: Account? =null
-
-            val account = accountNumber?.let {
-                runBlocking {
-                    accountRepository.getAccountByNumber(it).firstOrNull()
-                }
-            }
-            //Todo: Update bank name for existing accounts
-//            if(account?.bankName=="Unknown Account" && bankName != "Unknown Account"){
-//                FinTrackLogger.d(TAG, "Mapped to account: ${account.name} of bank: ${account.bankName}")
-//                account.bankName=bankName
-//                account.let {
-//                    runBlocking {
-//                        accountRepository.updateAccount(it)
-//                    }
-//                }
-//            }
-
-            if (bankName.equals("Unknown Account", ignoreCase = true) && account==null){
-                FinTrackLogger.d(TAG, "Account could not be determined")
-                // Create account name from bank name and last 4 digits
-                val accountName = accountNumber?.length?.let {
-                    if (it >= 4) {
-                        "$bankName ****${accountNumber.takeLast(4)}"
-                    } else {
-                        "$bankName Account"
-                    }
-                }
-                 newAccount = Account(
-                    name = accountName?:"Account",
-                    accountNumber = accountNumber?:"Unknown",
-                    bankName = bankName,
-                    accountType = Account.AccountType.SAVINGS, // Default to SAVINGS
-                    isActive = true,
-                    icon = getBankIcon(bankName),
-                    color = getBankColor(bankName)
-                )
-                newAccount.let {
-                    runBlocking {
-                        val account=accountRepository.insertAccount(it)
-                        newAccount.copy(account)
-                    }
-                }
-            }
 
             val confidence = calculateConfidence(
                 amount != null,
@@ -303,7 +258,6 @@ class ImageTransactionParser @Inject constructor(
                 upiApp = upi,
                 confidence = confidence,
                 extractedDate = dateReceived,
-                account = account?:newAccount,
             )
 
         } catch (e: Exception) {

@@ -6,14 +6,17 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.kpr.fintrack.R
 import com.kpr.fintrack.data.datasource.ImageProcessingResult
 import com.kpr.fintrack.data.datasource.ImageReceiptDataSource
+import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import com.kpr.fintrack.utils.FinTrackLogger
 import com.kpr.fintrack.utils.logging.SecureLogger
+import com.kpr.fintrack.utils.parsing.BankUtils
 import com.kpr.fintrack.utils.parsing.CategoryMatcher
 import com.kpr.fintrack.utils.parsing.ImageTransactionParser
 import dagger.hilt.android.AndroidEntryPoint
@@ -58,7 +61,9 @@ class ImageImportService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val imageUri = intent?.getParcelableExtra<Uri>(EXTRA_IMAGE_URI)
+        val imageUri =
+            intent?.getParcelableExtra(EXTRA_IMAGE_URI, Uri::class.java)
+
         if (imageUri == null) {
             FinTrackLogger.e(TAG, "No image URI provided in intent")
             return START_NOT_STICKY
@@ -99,6 +104,7 @@ class ImageImportService : Service() {
                                     description = parseResult.description ?: "",
                                     upiApp = parseResult.upiApp
                                 )
+                                val account=getOrCreateAccountByNumber(parseResult.accountNumber)
 
                                 val receiptSource = determineReceiptSource(result.text)
 
@@ -112,10 +118,11 @@ class ImageImportService : Service() {
                                     upiApp = parseResult.upiApp,
                                     accountNumber = parseResult.accountNumber,
                                     referenceId = parseResult.referenceId,
-                                    smsBody = "Extracted From UPI App " + parseResult.upiApp?.name,
-                                    sender = "Extracted From UPI App" + parseResult.upiApp?.name,
+                                    smsBody = result.text.replace(Regex("\\s+"), " ") // Normalize whitespace
+                                        .trim(),
+                                    sender = "Extracted from UPI Receipt ${parseResult.upiApp?.name}",
                                     confidence = parseResult.confidence,
-                                    account = parseResult.account,
+                                    account = account,
                                     receiptImagePath = result.savedFilePath,
                                     receiptSource = receiptSource
                                 )
@@ -185,6 +192,68 @@ class ImageImportService : Service() {
             .setSmallIcon(R.drawable.ic_stop).build()
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
+
+    private suspend fun getOrCreateAccountByNumber(accountNumber: String?): Account? {
+        val account = accountNumber?.let { accountNumber ->
+            try {
+                // First try to find existing account
+                val existingAccount = accountRepository.getAccountByNumber(accountNumber).first()
+                if (existingAccount != null) {
+                    existingAccount
+                } else {
+                    // Create new account if not found
+                    secureLogger.i("SMS_RECEIVER", "Account not found for number: $accountNumber, creating new account")
+                    createAccountFromImageReceipt(accountNumber, "Null")
+                }
+            } catch (e: Exception) {
+                secureLogger.w("SMS_RECEIVER", "Failed to find/create account for number: $accountNumber $e")
+                // Try to create account even if lookup failed
+                try {
+                    createAccountFromImageReceipt(accountNumber, "Nukll")
+                } catch (createException: Exception) {
+                    secureLogger.e("SMS_RECEIVER", "Failed to create account for number: $accountNumber", createException)
+                    null
+                }
+            }
+        }
+        return account
+    }
+
+    private suspend fun createAccountFromImageReceipt(
+        accountNumber: String,
+        visonText: String
+    ): Account? {
+        return try {
+            // Extract bank name from sender or SMS content
+            val bankName = "Bank"
+
+            // Create account name from bank name and last 4 digits
+            val accountName = if (accountNumber.length >= 4) {
+                "$bankName ****${accountNumber.takeLast(4)}"
+            } else {
+                "$bankName Account"
+            }
+
+            val newAccount = Account(
+                name = accountName,
+                accountNumber = accountNumber,
+                bankName = bankName,
+                accountType = Account.AccountType.SAVINGS, // Default to SAVINGS
+                isActive = true,
+                icon = BankUtils.getBankIcon(bankName),
+                color = BankUtils.getBankColor(bankName)
+            )
+
+            val accountId = accountRepository.insertAccount(newAccount)
+            secureLogger.i("SMS_RECEIVER", "Created new account: $accountName with ID: $accountId")
+
+            newAccount.copy(id = accountId)
+        } catch (e: Exception) {
+            secureLogger.e("SMS_RECEIVER", "Failed to create account from SMS", e)
+            null
+        }
+    }
+
 
     override fun onBind(intent: Intent?): IBinder? = null
 

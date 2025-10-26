@@ -16,11 +16,13 @@
 
     <!-- Biometric Authentication -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
-    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+
 
     <!-- Add permission for reading shared content -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:ignore="SelectedPhotoAccess" />
 
     <application
         android:name=".FinTrackApplication"
@@ -34,12 +36,16 @@
         android:theme="@style/Theme.FinTrack"
         android:enableOnBackInvokedCallback="true"
         android:requestLegacyExternalStorage="true"
-        tools:targetApi="36">
+        tools:targetApi="36"
+        tools:ignore="SelectedPhotoAccess">
 
         <activity
             android:name=".presentation.ui.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.FinTrack">
+            <meta-data
+                android:name="com.google.mlkit.vision.DEPENDENCIES"
+                android:value="ocr" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

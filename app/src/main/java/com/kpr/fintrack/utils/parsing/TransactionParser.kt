@@ -33,7 +33,7 @@ class TransactionParser @Inject constructor(
         val suggestedCategory: Category? = null,
         val confidence: Float = 0f,
         val extractedDate: LocalDateTime? = null,
-        val account: Account?=null
+        //val account: Account?=null
     ) {
         companion object {
             fun noMatch() = ParseResult(isFinancialTransaction = false)

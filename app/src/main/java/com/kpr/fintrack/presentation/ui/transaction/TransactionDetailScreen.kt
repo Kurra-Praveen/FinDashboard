@@ -251,129 +251,35 @@ private fun TransactionDetailContent(
                 "UPI App" to (transaction.upiApp?.name ?: "Direct Bank")
             )
         )
-
-        // Decide whether to show the receipt image or the original SMS body
         val hasImage = !transaction.receiptImagePath.isNullOrBlank()
-        val smsMarked = transaction.smsBody.contains("Extracted From UPI App", ignoreCase = true)
+        val hasSms = transaction.smsBody.isNotBlank()
 
-        when {
-            // Prefer image when image exists. Also prefer image when SMS indicates it was extracted and an image exists.
-            hasImage -> {
-                FinTrackLogger.d(
-                    "FinTrack_Image",
-                    "Showing receipt image for transaction: ${transaction.referenceId ?: "N/A"} (smsMarked=$smsMarked)"
-                )
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Receipt",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = "Tap to view transaction receipt",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Button(onClick = {
-                            FinTrackLogger.d(
-                                "FinTrack_Image",
-                                "View transaction (receipt) clicked for transaction: ${transaction.referenceId ?: "N/A"}"
-                            )
-                            showReceiptDialog = true
-                        }) {
-                            Text("View Transaction")
-                        }
-                    }
-                }
+        if (hasImage && hasSms) {
+            // ✅ Both available
+            ReceiptCard(onClick = { showReceiptDialog = true })
+            SmsCard(transaction.smsBody, transaction.sender, transaction.date.toString())
+        } else if (hasImage || hasSms) {
+            // ⚠️ One missing
+            if (hasImage) {
+                ReceiptCard(onClick = { showReceiptDialog = true })
+            } else {
+                SmsCard(transaction.smsBody, transaction.sender, transaction.date.toString())
             }
 
-            // No image available but SMS body exists — show SMS body
-            transaction.smsBody.isNotBlank() -> {
-                FinTrackLogger.d(
-                    "FinTrack_Image",
-                    "Showing SMS body for transaction: ${transaction.referenceId ?: "N/A"} (smsMarked=$smsMarked)"
-                )
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Original Message",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = if (transaction.smsBody.length > 200) transaction.smsBody.take(
-                                    200
-                                ) + "..." else transaction.smsBody,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = buildAnnotatedString {
-                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Normal)) {
-                                        append("From ")
-                                    }
-                                    withStyle(style = SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                                        append(transaction.sender)
-                                    }
-                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Normal)) {
-                                        append(" on ")
-                                    }
-                                    withStyle(style = SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                                        append(transaction.date.toString())
-                                    }
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-//                        Button(onClick = {
-//                            FinTrackLogger.d(
-//                                "FinTrack_Image",
-//                                "View original message clicked for transaction: ${transaction.referenceId ?: "N/A"}"
-//                            )
-//                            showMessageDialog = true
-//                        }) {
-//                            Text("View message")
-//                        }
-                    }
-                }
-            }
-
-            else -> {
-                // Neither image nor message available — show placeholder
-                FinTrackLogger.d(
-                    "FinTrack_Image",
-                    "No receipt image or SMS body for transaction: ${transaction.referenceId ?: "N/A"}"
-                )
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "No receipt or message available",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+        } else {
+            // ❌ Neither available
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "No receipt or message available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
+
 
         // Category Section
         Card(
@@ -386,10 +292,6 @@ private fun TransactionDetailContent(
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-//                Text(
-//                    text = transaction.category.icon,
-//                    style = MaterialTheme.typography.headlineMedium
-//                )
                 CategoryIcon(transaction.category.id)
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -569,37 +471,6 @@ private fun TransactionDetailContent(
                 }
             }
         }
-
-        // Fullscreen message dialog
-//        if (showMessageDialog && transaction.smsBody.isNotBlank()) {
-//            Dialog(onDismissRequest = { showMessageDialog = false }) {
-//                Box(modifier = Modifier
-//                    .fillMaxSize()
-//                    .padding(16.dp)) {
-//                    Column(modifier = Modifier.fillMaxSize()) {
-//                        Text(
-//                            text = "Original Message",
-//                            style = MaterialTheme.typography.titleLarge,
-//                            fontWeight = FontWeight.Bold
-//                        )
-//                        Spacer(modifier = Modifier.height(12.dp))
-//                        Text(
-//                            text = transaction.smsBody,
-//                            style = MaterialTheme.typography.bodyLarge
-//                        )
-//                    }
-//
-//                    IconButton(
-//                        onClick = { showMessageDialog = false },
-//                        modifier = Modifier
-//                            .align(Alignment.TopEnd)
-//                            .padding(16.dp)
-//                    ) {
-//                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
-//                    }
-//                }
-//            }
-//        }
     }
 }
 
@@ -644,6 +515,64 @@ private fun TransactionInfoSection(
                     )
                 }
             }
+        }
+    }
+}
+@Composable
+private fun ReceiptCard(onClick: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Receipt",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Tap to view transaction receipt",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Button(onClick = onClick) {
+                Text("View Transaction")
+            }
+        }
+    }
+}
+
+@Composable
+private fun SmsCard(smsBody: String, sender: String?, date: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Original Message",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (smsBody.length > 200) smsBody.take(200) + "..." else smsBody,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.Normal)) { append("From ") }
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.SemiBold)) { append(sender ?: "Unknown") }
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.Normal)) { append(" on ") }
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.SemiBold)) { append(date) }
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
