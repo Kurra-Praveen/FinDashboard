@@ -148,6 +148,27 @@ Change log
 ----------
 - 2025-10-18: Created README with project overview, build/run instructions, filter/sort guidance, debugging and privacy notes.
 
+Screenshots
+-----------
+Below are example screenshots you can include to showcase the app UI. Place the image files in the `docs/screenshots/` folder (recommended). Use the following file names so they match the links below:
 
+- `docs/screenshots/Dashboard.svg` — Dashboard screen
+- `docs/screenshots/Transactions-Screen.svg` — Transactions screen
+- `docs/screenshots/Accounts-Screen.svg` — Accounts screen
+- `docs/screenshots/Analytics-Screen.svg` — Analytics screen
+
+Add images to the repo and they will appear below automatically.
+
+<!-- Screenshots -->
+
+<div style="text-align:center">
+  <img src="docs/screenshots/Dashboard.png" alt="Dashboard" width="360" />
+  <img src="docs/screenshots/Transactions-Screen.png" alt="Transactions" width="360" />
+</div>
+
+<div style="text-align:center; margin-top:12px;">
+  <img src="docs/screenshots/Accounts-Screen.png" alt="Accounts" width="360" />
+  <img src="docs/screenshots/Analytics-Screen.png" alt="Analytics" width="360" />
+</div>
 
 

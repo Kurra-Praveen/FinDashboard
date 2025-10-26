@@ -17,8 +17,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.LoadState
 import com.kpr.fintrack.presentation.ui.components.AccountSummaryCard
 import com.kpr.fintrack.presentation.ui.components.EmptyStateMessage
-import com.kpr.fintrack.presentation.ui.components.TransactionItem
 import android.util.Log
+import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +26,7 @@ fun AccountDetailScreen(
     accountId: Long,
     onNavigateBack: () -> Unit,
     onEditAccount: (Long) -> Unit,
+    onTransactionClick: (Long) -> Unit,
     viewModel: AccountDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -144,12 +145,13 @@ fun AccountDetailScreen(
                                 items(count = transactions.itemCount) { index ->
                                     val transaction = transactions[index]
                                     transaction?.let { tx ->
-                                        TransactionItem(transaction = tx, onClick = { /* navigate */ })
+                                        RecentTransactionItem(transaction = tx, onClick = { onTransactionClick(tx.id) })
                                     }
                                 }
 
                                 if (transactions.loadState.append is LoadState.Loading) {
                                     item {
+
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
