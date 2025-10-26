@@ -22,7 +22,8 @@ data class Transaction(
     val tags: List<String> = emptyList(),
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
-    val receiptImagePath:String? = null
+    val receiptImagePath:String? = null,
+    val receiptSource: String? = null
 )
 
 enum class TransactionType {

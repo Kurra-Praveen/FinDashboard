@@ -16,7 +16,13 @@
 
     <!-- Biometric Authentication -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
-    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+
+
+    <!-- Add permission for reading shared content -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:ignore="SelectedPhotoAccess" />
 
     <application
         android:name=".FinTrackApplication"
@@ -29,12 +35,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FinTrack"
         android:enableOnBackInvokedCallback="true"
-        tools:targetApi="36">
+        android:requestLegacyExternalStorage="true"
+        tools:targetApi="36"
+        tools:ignore="SelectedPhotoAccess">
 
         <activity
             android:name=".presentation.ui.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.FinTrack">
+            <meta-data
+                android:name="com.google.mlkit.vision.DEPENDENCIES"
+                android:value="ocr" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -45,7 +56,8 @@
         <receiver
             android:name=".services.sms.TransactionSmsReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
             <intent-filter android:priority="1000">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
@@ -88,6 +100,24 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!-- Share Receiver Activity -->
+        <activity
+            android:name=".presentation.receivers.ShareReceiverActivity"
+            android:exported="true"
+            android:theme="@style/Theme.FinTrack.Translucent">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- Image Import Service -->
+        <service
+            android:name=".services.ImageImportService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
     </application>
 

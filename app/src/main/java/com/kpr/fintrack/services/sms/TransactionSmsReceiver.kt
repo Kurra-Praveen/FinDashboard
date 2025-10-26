@@ -79,6 +79,17 @@ class TransactionSmsReceiver : BroadcastReceiver() {
                             // First try to find existing account
                             val existingAccount = accountRepository.getAccountByNumber(accountNumber).first()
                             if (existingAccount != null) {
+                                if (existingAccount.bankName.equals("Bank", ignoreCase = true)) {
+                                    // Update bank name if it's generic
+                                    val updatedBankName = extractBankNameFromSms(
+                                        message.displayOriginatingAddress ?: "",
+                                        message.messageBody
+                                    )
+                                    val updatedAccount = existingAccount.copy(bankName = updatedBankName)
+                                    accountRepository.updateAccount(updatedAccount)
+                                    secureLogger.i("SMS_RECEIVER", "Updated account bank name to: $updatedBankName for account number: $accountNumber")
+                                    updatedAccount
+                                }
                                 existingAccount
                             } else {
                                 // Create new account if not found

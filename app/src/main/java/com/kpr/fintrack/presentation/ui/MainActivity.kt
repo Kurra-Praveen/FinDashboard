@@ -3,6 +3,7 @@ package com.kpr.fintrack.presentation.ui
 import android.Manifest
 import android.content.ComponentName
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -42,18 +43,25 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val permissionsState = rememberMultiplePermissionsState(
-                        permissions = listOf(
-                            Manifest.permission.RECEIVE_SMS,
-                            Manifest.permission.READ_SMS,
-                            Manifest.permission.POST_NOTIFICATIONS,
-                            //Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE
-                        )
+                        permissions = buildList {
+                            // Base permissions
+                            add(Manifest.permission.RECEIVE_SMS)
+                            add(Manifest.permission.READ_SMS)
+                            add(Manifest.permission.POST_NOTIFICATIONS)
+
+                            // Image permissions based on API level
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                add(Manifest.permission.READ_MEDIA_IMAGES)
+                            } else {
+                                add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                            }
+                        }
                     )
 
                     LaunchedEffect(Unit) {
                         permissionsState.launchMultiplePermissionRequest()
                     }
-                   // val notificationAccessGranted = isNotificationListenerEnabled(this@MainActivity)
+
                     when {
                         permissionsState.allPermissionsGranted -> {
                             FinTrackApp()

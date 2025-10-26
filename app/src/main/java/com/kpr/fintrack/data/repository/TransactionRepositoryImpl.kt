@@ -1,5 +1,6 @@
 package com.kpr.fintrack.data.repository
 
+import android.util.Log
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -43,27 +44,40 @@ class TransactionRepositoryImpl @Inject constructor(
     private val upiAppDao: UpiAppDao,
     private val accountDao: AccountDao
 ) : TransactionRepository {
+    companion object {
+        private const val TAG = "TransactionRepoImpl"
+    }
+
     init {
-        android.util.Log.d("TransactionRepositoryImpl", "Repository initialized")
+        Log.d(TAG, "Repository initialized")
     }
 
     override fun getPaginatedTransactions(): Flow<PagingData<Transaction>> {
-        return Pager(
-            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
-            pagingSourceFactory = { transactionDao.getPaginatedTransactions() }
-        ).flow.map { pagingData ->
-            pagingData.map { it.toDomainModel(accountDao) }
+        return try {
+            Pager(
+                config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+                pagingSourceFactory = { transactionDao.getPaginatedTransactions() }
+            ).flow.map { pagingData ->
+                pagingData.map { it.toDomainModel(accountDao) }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting paginated transactions: ${e.message}", e)
+            throw e
         }
     }
 
     override fun getPaginatedTransactionsByAccountId(accountId: Long): Flow<PagingData<Transaction>> {
-        android.util.Log.d("TransactionRepositoryImpl", "getPaginatedTransactionsByAccountId called for accountId=$accountId")
-        return Pager(
-            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
-            pagingSourceFactory = { transactionDao.getPaginatedTransactionsByAccountId(accountId) }
-        ).flow.map { pagingData ->
-            android.util.Log.d("TransactionRepositoryImpl", "Mapping paging data to domain model for accountId=$accountId")
-            pagingData.map { it.toDomainModel(accountDao) }
+        Log.d(TAG, "Getting paginated transactions for accountId=$accountId")
+        return try {
+            Pager(
+                config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+                pagingSourceFactory = { transactionDao.getPaginatedTransactionsByAccountId(accountId) }
+            ).flow.map { pagingData ->
+                pagingData.map { it.toDomainModel(accountDao) }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting paginated transactions for accountId=$accountId: ${e.message}", e)
+            throw e
         }
     }
 
@@ -71,8 +85,14 @@ class TransactionRepositoryImpl @Inject constructor(
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): Flow<List<Transaction>> {
-        return transactionDao.getTransactionsByDateRange(startDate, endDate).map { entities ->
-            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+        Log.d(TAG, "Getting transactions between $startDate and $endDate")
+        return try {
+            transactionDao.getTransactionsByDateRange(startDate, endDate).map { entities ->
+                entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting transactions by date range: ${e.message}", e)
+            throw e
         }
     }
 
@@ -110,28 +130,55 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override fun getRecentTransactions(limit: Int): Flow<List<Transaction>> {
-        return transactionDao.getRecentTransactions(limit).map { entities ->
-            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+        return try {
+            transactionDao.getRecentTransactions(limit).map { entities ->
+                entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting recent transactions with limit=$limit: ${e.message}", e)
+            throw e
         }
     }
 
     override suspend fun insertTransaction(transaction: Transaction): Long {
-        val result= transactionDao.insertTransaction(transaction.toEntity())
-        //accountDao.getAccountById(transaction.toEntity().accountNumber)
-        return result
-
+        return try {
+            val result = transactionDao.insertTransaction(transaction.toEntity())
+            Log.d(TAG, "Successfully inserted transaction with id=$result")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Error inserting transaction: ${e.message}", e)
+            throw e
+        }
     }
 
     override suspend fun insertTransactions(transactions: List<Transaction>) {
-        transactionDao.insertTransactions(transactions.map { it.toEntity() })
+        try {
+            transactionDao.insertTransactions(transactions.map { it.toEntity() })
+            Log.d(TAG, "Successfully inserted ${transactions.size} transactions")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error inserting multiple transactions: ${e.message}", e)
+            throw e
+        }
     }
 
     override suspend fun updateTransaction(transaction: Transaction) {
-        transactionDao.updateTransaction(transaction.toEntity())
+        try {
+            transactionDao.updateTransaction(transaction.toEntity())
+            Log.d(TAG, "Successfully updated transaction with id=${transaction.id}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating transaction ${transaction.id}: ${e.message}", e)
+            throw e
+        }
     }
 
     override suspend fun deleteTransaction(transaction: Transaction) {
-        transactionDao.deleteTransaction(transaction.toEntity())
+        try {
+            transactionDao.deleteTransaction(transaction.toEntity())
+            Log.d(TAG, "Successfully deleted transaction with id=${transaction.id}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting transaction ${transaction.id}: ${e.message}", e)
+            throw e
+        }
     }
 
     override suspend fun getTransactionByReferenceId(referenceId: String): Transaction? {
@@ -281,27 +328,40 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getAnalyticsSummary(): AnalyticsSummary {
-        val currentMonth = YearMonth.now()
-        val startOfMonth = currentMonth.atDay(1).atStartOfDay()
-        val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
+        Log.d(TAG, "Generating analytics summary")
+        return try {
+            val currentMonth = YearMonth.now()
+            val startOfMonth = currentMonth.atDay(1).atStartOfDay()
+            val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
 
-        return AnalyticsSummary(
-            monthlyData = getMonthlySpendingData(6),
-            categoryData = getCategorySpendingData(startOfMonth, endOfMonth),
-            weeklyData = getWeeklySpendingData(4),
-            topMerchants = getTopMerchants(5, startOfMonth, endOfMonth),
-            averageDailySpending = calculateAverageDailySpending(startOfMonth, endOfMonth),
-            highestSpendingDay = calculateHighestSpendingDay(startOfMonth, endOfMonth),
-            mostUsedCategory = findMostUsedCategory(startOfMonth, endOfMonth)
-        )
+            AnalyticsSummary(
+                monthlyData = getMonthlySpendingData(6),
+                categoryData = getCategorySpendingData(startOfMonth, endOfMonth),
+                weeklyData = getWeeklySpendingData(4),
+                topMerchants = getTopMerchants(5, startOfMonth, endOfMonth),
+                averageDailySpending = calculateAverageDailySpending(startOfMonth, endOfMonth),
+                highestSpendingDay = calculateHighestSpendingDay(startOfMonth, endOfMonth),
+                mostUsedCategory = findMostUsedCategory(startOfMonth, endOfMonth)
+            ).also {
+                Log.d(TAG, "Successfully generated analytics summary")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generating analytics summary: ${e.message}", e)
+            throw e
+        }
     }
 
     private suspend fun calculateAverageDailySpending(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
-        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
-        val totalSpent = transactions.filter { it.isDebit }.sumOf { it.amount }
-        val daysDiff = ChronoUnit.DAYS.between(startDate.toLocalDate(), endDate.toLocalDate()) + 1
+        return try {
+            val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
+            val totalSpent = transactions.filter { it.isDebit }.sumOf { it.amount }
+            val daysDiff = ChronoUnit.DAYS.between(startDate.toLocalDate(), endDate.toLocalDate()) + 1
 
-        return if (daysDiff > 0) totalSpent / BigDecimal(daysDiff) else BigDecimal.ZERO
+            if (daysDiff > 0) totalSpent / BigDecimal(daysDiff) else BigDecimal.ZERO
+        } catch (e: Exception) {
+            Log.e(TAG, "Error calculating average daily spending: ${e.message}", e)
+            throw e
+        }
     }
 
     private suspend fun calculateHighestSpendingDay(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {

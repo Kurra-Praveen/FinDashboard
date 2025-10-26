@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 2,
-    "identityHash": "9ba8acdfcbda446ab561d94448670b03",
+    "version": 4,
+    "identityHash": "4ce99dd7c572ee3e66aac38d690ce1db",
     "entities": [
       {
         "tableName": "transactions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` TEXT NOT NULL, `isDebit` INTEGER NOT NULL, `merchantName` TEXT NOT NULL, `description` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `date` TEXT NOT NULL, `upiAppId` INTEGER, `accountId` INTEGER, `accountNumber` TEXT, `referenceId` TEXT, `smsBody` TEXT NOT NULL, `sender` TEXT NOT NULL, `confidence` REAL NOT NULL, `isManuallyVerified` INTEGER NOT NULL, `tags` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `updatedAt` TEXT NOT NULL, `receiptImage` TEXT, `receiptSource` TEXT, FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount` TEXT NOT NULL, `isDebit` INTEGER NOT NULL, `merchantName` TEXT NOT NULL, `description` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `date` TEXT NOT NULL, `upiAppId` INTEGER, `accountId` INTEGER, `accountNumber` TEXT, `referenceId` TEXT, `smsBody` TEXT NOT NULL, `sender` TEXT NOT NULL, `confidence` REAL NOT NULL, `isManuallyVerified` INTEGER NOT NULL, `tags` TEXT NOT NULL, `createdAt` TEXT NOT NULL, `updatedAt` TEXT NOT NULL, `receiptImagePath` TEXT, `receiptSource` TEXT, FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`accountId`) REFERENCES `accounts`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
@@ -117,8 +117,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "receiptImage",
-            "columnName": "receiptImage",
+            "fieldPath": "receiptImagePath",
+            "columnName": "receiptImagePath",
             "affinity": "TEXT",
             "notNull": false
           },
@@ -428,7 +428,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9ba8acdfcbda446ab561d94448670b03')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4ce99dd7c572ee3e66aac38d690ce1db')"
     ]
   }
 }

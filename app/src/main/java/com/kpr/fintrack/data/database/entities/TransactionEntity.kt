@@ -52,5 +52,7 @@ data class TransactionEntity(
     val isManuallyVerified: Boolean = false,
     val tags: String = "", // JSON string of tags
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
+    val receiptImagePath: String? = null, // File path to the stored receipt image (app internal storage)
+    val receiptSource: String? = null // App source of the receipt (e.g., "PHONEPE", "GPAY", "PAYTM")
 )

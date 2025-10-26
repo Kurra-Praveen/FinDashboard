@@ -39,7 +39,9 @@ suspend fun TransactionEntity.toDomainModel(accountDao: AccountDao): Transaction
         isManuallyVerified = isManuallyVerified,
         tags = tags.split(",").filter { it.isNotBlank() },
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        receiptImagePath = this@toDomainModel.receiptImagePath,
+        receiptSource = this@toDomainModel.receiptSource
     )
 }
 
@@ -62,7 +64,9 @@ fun Transaction.toEntity(): TransactionEntity {
         isManuallyVerified = isManuallyVerified,
         tags = tags.joinToString(","),
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        receiptImagePath = receiptImagePath,
+        receiptSource = receiptSource
     )
 }
 

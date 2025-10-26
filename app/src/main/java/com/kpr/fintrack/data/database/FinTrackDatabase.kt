@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kpr.fintrack.BuildConfig
 import com.kpr.fintrack.data.database.converters.Converters
@@ -29,7 +30,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         UpiAppEntity::class,
         AccountEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -41,13 +42,20 @@ abstract class FinTrackDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
 
     companion object {
+        //private val MIGRATION_3_4 = object : Migration(3, 4) {
+//            override fun migrate(database: SupportSQLiteDatabase) {
+//                // Add new nullable columns for receipt path and source
+//                database.execSQL("ALTER TABLE transactions ADD COLUMN receiptImagePath TEXT")
+//                database.execSQL("ALTER TABLE transactions ADD COLUMN receiptSource TEXT")
+//            }
+        //}
+
         fun create(
             context: Context,
             passphrase: ByteArray,
             coroutineScope: CoroutineScope
         ): FinTrackDatabase {
 
-            // Load SQLCipher libraries first
             // Load SQLCipher libraries first
             System.loadLibrary("sqlcipher")
 
@@ -61,6 +69,7 @@ abstract class FinTrackDatabase : RoomDatabase() {
                 BuildConfig.DATABASE_NAME
             )
                 .openHelperFactory(supportFactory)
+                //.addMigrations(MIGRATION_3_4)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -70,7 +79,7 @@ abstract class FinTrackDatabase : RoomDatabase() {
                         }
                     }
                 })
-                .fallbackToDestructiveMigration() // For development
+                .fallbackToDestructiveMigration() // For development; migrations are provided for 3->4
                 .build()
         }
 

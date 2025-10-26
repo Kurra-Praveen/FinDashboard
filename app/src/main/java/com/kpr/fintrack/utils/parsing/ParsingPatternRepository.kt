@@ -1,6 +1,7 @@
 package com.kpr.fintrack.utils.parsing
 
 import com.kpr.fintrack.domain.model.UpiApp
+import java.time.format.DateTimeFormatter
 import java.util.regex.Pattern
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,7 +19,9 @@ class ParsingPatternRepository @Inject constructor()  {
         val accountGroup: Int = -1,
         val dateGroup: Int = -1,
         val transactionType: String? = null,
-        val baseConfidence: Float = 0.7f
+        val baseConfidence: Float = 0.7f,
+        val isUpi: Boolean = false,
+        val bankNameGroup: Int=-1
     )
 
     private val patterns = Patterns.getAllPatterns()
@@ -58,9 +61,9 @@ class ParsingPatternRepository @Inject constructor()  {
             // UPI App specific patterns
             upiApp != null -> {
                 val appPatterns = patterns.filter {
-                    it.bankName == upiApp.name.uppercase() || it.bankName == "UPI"
+                    it.isUpi
                 }
-                appPatterns.ifEmpty { patterns.filter { it.bankName == "UPI" } }
+                appPatterns.ifEmpty { patterns.filter { it.id.contains("upiapp",ignoreCase = true) } }
             }
 
             // Generic UPI and other patterns
@@ -80,5 +83,32 @@ class ParsingPatternRepository @Inject constructor()  {
             merchantName.matches("\\d{10}".toRegex()) -> "Bills & Utilities" // Phone numbers usually recharge
             else -> null
         }
+    }
+
+     fun getDateTimeFormatters(): List<DateTimeFormatter> {
+        return listOf(
+            // Format: "09:22 pm on 19 Oct 2025"
+            DateTimeFormatter.ofPattern("hh:mm a 'on' dd MMM yyyy"),
+            // Format: "09:22 PM on 19 Oct 2025" (uppercase AM/PM)
+            DateTimeFormatter.ofPattern("hh:mm a 'on' dd MMM yyyy"),
+            // Format: "8:56 am" (only time, uses current date)
+            DateTimeFormatter.ofPattern("h:mm a"),
+            // Format: "6 Jun 2025" (only date, uses start of day)
+            DateTimeFormatter.ofPattern("d MMM yyyy"),
+            // Format: "06 Jun 2025" (with leading zero)
+            DateTimeFormatter.ofPattern("dd MMM yyyy"),
+            // Format: "19-10-2025 09:22 PM"
+            DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a"),
+            // Format: "2025-10-19 21:22"
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"),
+            // Format: "19/10/2025 09:22 PM"
+            DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a"),
+            // Format: "Oct 19, 2025 09:22 PM"
+            DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a"),
+            // Format: "19 Oct 2025 09:22 PM"
+            DateTimeFormatter.ofPattern("dd MMM yyyy hh:mm a"),
+            // Format: "2025-10-19"
+            DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        )
     }
 }

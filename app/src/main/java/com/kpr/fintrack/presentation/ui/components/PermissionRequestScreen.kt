@@ -1,12 +1,13 @@
 package com.kpr.fintrack.presentation.ui.components
 
+import android.Manifest
+import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,15 +48,14 @@ fun PermissionRequestScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Message,
+                    imageVector = Icons.Filled.Payments,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
 
-        // Title
         Text(
             text = "Welcome to FinTrack",
             style = MaterialTheme.typography.headlineMedium,
@@ -63,104 +63,93 @@ fun PermissionRequestScreen(
             textAlign = TextAlign.Center
         )
 
-        // Description
         Text(
-            text = "Track your financial transactions automatically by reading SMS messages from banks and payment apps.",
+            text = "To help you track your finances automatically, we need the following permissions:",
             style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            textAlign = TextAlign.Center
         )
 
-        // Permission explanation cards
-        PermissionExplanationCard(
-            icon = Icons.AutoMirrored.Filled.Message,
-            title = "SMS Access Required",
-            description = "FinTrack needs to read SMS messages to automatically detect and categorize your financial transactions from banks and payment apps."
-        )
-
-        PermissionExplanationCard(
-            icon = Icons.Default.Security,
-            title = "Your Privacy is Protected",
-            description = "All data is stored locally on your device with encryption. No personal information is sent to external servers."
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Permission button
-        Button(
-            onClick = {
-                permissionsState.launchMultiplePermissionRequest()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            enabled = !permissionsState.allPermissionsGranted
+        // Permissions List
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = if (permissionsState.allPermissionsGranted) {
-                    "Permissions Granted"
-                } else {
-                    "Grant SMS Permissions"
-                },
-                style = MaterialTheme.typography.titleMedium
+            // SMS Permission Section
+            PermissionItem(
+                icon = Icons.AutoMirrored.Filled.Message,
+                title = "SMS Access",
+                description = "To automatically detect and track your financial transactions from SMS notifications"
+            )
+
+            // Notification Permission Section
+            PermissionItem(
+                icon = Icons.Default.Notifications,
+                title = "Notifications",
+                description = "To show you updates about transaction processing"
+            )
+
+            // Image Permission Section
+            PermissionItem(
+                icon = Icons.Default.Image,
+                title = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                    "Photo Access" else "Storage Access",
+                description = "To process payment receipts shared from UPI apps (PhonePe, GPay, Paytm)"
             )
         }
 
-        if (!permissionsState.allPermissionsGranted && permissionsState.shouldShowRationale) {
-            TextButton(
-                onClick = {
-                    // Handle manual permission setup
-                }
-            ) {
-                Text("Set up permissions manually")
-            }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = { permissionsState.launchMultiplePermissionRequest() },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Security,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Grant Permissions")
+        }
+
+        if (!permissionsState.allPermissionsGranted) {
+            Text(
+                text = "These permissions are required for the app to function properly. Without them, automatic transaction tracking won't work.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
 
 @Composable
-private fun PermissionExplanationCard(
+private fun PermissionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
-    description: String,
-    modifier: Modifier = Modifier
+    description: String
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.primary
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
