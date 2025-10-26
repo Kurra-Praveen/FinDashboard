@@ -179,6 +179,9 @@ fun FinTrackNavigation(
                 },
                 onEditAccount = { id ->
                     navController.navigate(Screen.EditAccount.createRoute(id))
+                },
+                onTransactionClick = { transactionId ->
+                    navController.navigate(Screen.TransactionDetail.createRoute(transactionId))
                 }
             )
         }
