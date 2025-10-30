@@ -13,6 +13,7 @@ import com.kpr.fintrack.R
 import com.kpr.fintrack.data.datasource.ImageProcessingResult
 import com.kpr.fintrack.data.datasource.ImageReceiptDataSource
 import com.kpr.fintrack.domain.model.Account
+import com.kpr.fintrack.domain.model.createTransactionFromParseResult
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import com.kpr.fintrack.utils.FinTrackLogger
 import com.kpr.fintrack.utils.logging.SecureLogger
@@ -104,32 +105,44 @@ class ImageImportService : Service() {
                                     description = parseResult.description ?: "",
                                     upiApp = parseResult.upiApp
                                 )
-                                val account=getOrCreateAccountByNumber(parseResult.accountNumber)
 
-                                val receiptSource = determineReceiptSource(result.text)
+                                val account=parseResult.accountNumber?.let { accountRepository.getOrCreateAccount(parseResult.accountNumber,null,null) }
+                                val receiptSource = BankUtils.determineReceiptSource(result.text)
 
-                                val transaction = com.kpr.fintrack.domain.model.Transaction(
-                                    amount = parseResult.amount ?: return,
-                                    isDebit = parseResult.isDebit ?: true,
-                                    merchantName = parseResult.merchantName ?: "Unknown",
-                                    description = parseResult.description ?: result.text,
-                                    category = category,
-                                    date = parseResult.extractedDate ?: LocalDateTime.now(),
-                                    upiApp = parseResult.upiApp,
-                                    accountNumber = parseResult.accountNumber,
-                                    referenceId = parseResult.referenceId,
-                                    smsBody = result.text.replace(Regex("\\s+"), " ") // Normalize whitespace
-                                        .trim(),
-                                    sender = "Extracted from UPI Receipt ${parseResult.upiApp?.name}",
-                                    confidence = parseResult.confidence,
-                                    account = account,
-                                    receiptImagePath = result.savedFilePath,
-                                    receiptSource = receiptSource
+//                                val transaction = com.kpr.fintrack.domain.model.Transaction(
+//                                    amount = parseResult.amount ?: return,
+//                                    isDebit = parseResult.isDebit ?: true,
+//                                    merchantName = parseResult.merchantName ?: "Unknown",
+//                                    description = parseResult.description ?: result.text,
+//                                    category = category,
+//                                    date = parseResult.extractedDate ?: LocalDateTime.now(),
+//                                    upiApp = parseResult.upiApp,
+//                                    accountNumber = parseResult.accountNumber,
+//                                    referenceId = parseResult.referenceId,
+//                                    smsBody = result.text.replace(Regex("\\s+"), " ") // Normalize whitespace
+//                                        .trim(),
+//                                    sender = "Extracted from UPI Receipt ${parseResult.upiApp?.name}",
+//                                    confidence = parseResult.confidence,
+//                                    account = account,
+//                                    receiptImagePath = result.savedFilePath,
+//                                    receiptSource = receiptSource
+//                                )
+                                val transaction=createTransactionFromParseResult(
+                                    parseResult,
+                                    category,
+                                    account,
+                                    result.text,
+                                    "Extracted from UPI Receipt ${parseResult.upiApp?.name}",
+                                    receiptSource,
+                                    result.savedFilePath,
+                                    receiptSource=receiptSource
                                 )
-                                FinTrackLogger.d(TAG, "Inserting transaction : $transaction")
-                                FinTrackLogger.d(TAG, "Inserting transaction with receipt path: ${result.savedFilePath}")
-                                transactionRepository.insertTransaction(transaction)
-                                showSuccessNotification()
+                                transaction?.let {
+                                    FinTrackLogger.d(TAG, "Inserting transaction : $it")
+                                    FinTrackLogger.d(TAG, "Inserting transaction with receipt path: ${result.savedFilePath}")
+                                    transactionRepository.insertTransaction(it)
+                                    showSuccessNotification()
+                                }
                             }
                         } else {
                             FinTrackLogger.w(TAG, "Failed to parse transaction from OCR text")
@@ -153,15 +166,6 @@ class ImageImportService : Service() {
         } finally {
             FinTrackLogger.Receipt.logServiceEvent("Processing completed")
             stopSelf()
-        }
-    }
-
-    private fun determineReceiptSource(text: String): String {
-        return when {
-            text.contains("PhonePe", ignoreCase = true) -> "PHONEPE"
-            text.contains("Google Pay", ignoreCase = true) -> "GPAY"
-            text.contains("Paytm", ignoreCase = true) -> "PAYTM"
-            else -> "UNKNOWN"
         }
     }
 
@@ -203,55 +207,15 @@ class ImageImportService : Service() {
                 } else {
                     // Create new account if not found
                     secureLogger.i("SMS_RECEIVER", "Account not found for number: $accountNumber, creating new account")
-                    createAccountFromImageReceipt(accountNumber, "Null")
+                    //createAccountFromImageReceipt(accountNumber, "Null")
+                    accountRepository.createAccountFromSource(accountNumber, null, null)
                 }
             } catch (e: Exception) {
                 secureLogger.w("SMS_RECEIVER", "Failed to find/create account for number: $accountNumber $e")
-                // Try to create account even if lookup failed
-                try {
-                    createAccountFromImageReceipt(accountNumber, "Nukll")
-                } catch (createException: Exception) {
-                    secureLogger.e("SMS_RECEIVER", "Failed to create account for number: $accountNumber", createException)
-                    null
-                }
+                null
             }
         }
         return account
-    }
-
-    private suspend fun createAccountFromImageReceipt(
-        accountNumber: String,
-        visonText: String
-    ): Account? {
-        return try {
-            // Extract bank name from sender or SMS content
-            val bankName = "Bank"
-
-            // Create account name from bank name and last 4 digits
-            val accountName = if (accountNumber.length >= 4) {
-                "$bankName ****${accountNumber.takeLast(4)}"
-            } else {
-                "$bankName Account"
-            }
-
-            val newAccount = Account(
-                name = accountName,
-                accountNumber = accountNumber,
-                bankName = bankName,
-                accountType = Account.AccountType.SAVINGS, // Default to SAVINGS
-                isActive = true,
-                icon = BankUtils.getBankIcon(bankName),
-                color = BankUtils.getBankColor(bankName)
-            )
-
-            val accountId = accountRepository.insertAccount(newAccount)
-            secureLogger.i("SMS_RECEIVER", "Created new account: $accountName with ID: $accountId")
-
-            newAccount.copy(id = accountId)
-        } catch (e: Exception) {
-            secureLogger.e("SMS_RECEIVER", "Failed to create account from SMS", e)
-            null
-        }
     }
 
 
