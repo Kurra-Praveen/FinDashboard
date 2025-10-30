@@ -1,50 +1,69 @@
 package com.kpr.fintrack
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.hilt.work.HiltWorkerFactory
+import androidx.core.content.edit
 import androidx.work.Configuration
 import androidx.work.WorkManager
 import com.kpr.fintrack.services.notification.NotificationScheduler
 import com.kpr.fintrack.utils.notification.NotificationHelper
 import com.kpr.fintrack.workers.CustomWorkerFactory
 import dagger.hilt.android.HiltAndroidApp
-import net.zetetic.database.sqlcipher.SQLiteDatabase
 import javax.inject.Inject
 
-//import net.sqlcipher.database.SQLiteDatabase
-
-
 @HiltAndroidApp
-class FinTrackApplication: Application(), Configuration.Provider {
+class FinTrackApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var notificationHelper: NotificationHelper
-    
+
     @Inject
     lateinit var workerFactory: CustomWorkerFactory
+
+    companion object {
+        private const val PREFS_NAME = "fintrack_prefs"
+        private const val KEY_FIRST_LAUNCH = "is_first_launch"
+    }
 
     override fun onCreate() {
         super.onCreate()
 
-        // Initialize SQLCipher libraries early - CRITICAL for avoiding crashes
+        // Initialize SQLCipher libraries
         try {
             System.loadLibrary(getString(R.string.sqlcipher_lib_name))
-            android.util.Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_sqlcipher_loaded_successfully))
+            Log.d(
+                getString(R.string.fintrack_application_tag),
+                getString(R.string.log_sqlcipher_loaded_successfully)
+            )
         } catch (e: Exception) {
-            android.util.Log.e(getString(R.string.fintrack_application_tag), getString(R.string.log_failed_to_load_sqlcipher), e)
+            Log.e(
+                getString(R.string.fintrack_application_tag),
+                getString(R.string.log_failed_to_load_sqlcipher),
+                e
+            )
         }
 
-        // Initialize WorkManager with our custom configuration
+        // Initialize WorkManager
         try {
-            android.util.Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_initializing_workmanager))
+            Log.d(
+                getString(R.string.fintrack_application_tag),
+                getString(R.string.log_initializing_workmanager)
+            )
             WorkManager.initialize(this, workManagerConfiguration)
-            android.util.Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_workmanager_initialized))
+            Log.d(
+                getString(R.string.fintrack_application_tag),
+                getString(R.string.log_workmanager_initialized)
+            )
         } catch (e: Exception) {
-            android.util.Log.e(getString(R.string.fintrack_application_tag), getString(R.string.log_failed_to_initialize_workmanager), e)
+            Log.e(
+                getString(R.string.fintrack_application_tag),
+                getString(R.string.log_failed_to_initialize_workmanager),
+                e
+            )
         }
 
-        // Initialize notification system with a delay to ensure Hilt is ready
+        // Initialize notification system
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             initializeNotificationSystem()
         }, 100)
@@ -52,33 +71,63 @@ class FinTrackApplication: Application(), Configuration.Provider {
 
     override val workManagerConfiguration: Configuration
         get() {
-            Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_creating_workmanager_config))
-            Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_workerfactory_initialized_status, ::workerFactory.isInitialized))
+            Log.d(
+                getString(R.string.fintrack_application_tag),
+                getString(R.string.log_creating_workmanager_config)
+            )
+            Log.d(
+                getString(R.string.fintrack_application_tag), getString(
+                    R.string.log_workerfactory_initialized_status, ::workerFactory.isInitialized
+                )
+            )
             if (::workerFactory.isInitialized) {
-                Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_workerfactory_class_name, workerFactory::class.java.simpleName))
+                Log.d(
+                    getString(R.string.fintrack_application_tag), getString(
+                        R.string.log_workerfactory_class_name, workerFactory::class.java.simpleName
+                    )
+                )
             }
-            return Configuration.Builder()
-                .setWorkerFactory(workerFactory)
-                .build()
+            return Configuration.Builder().setWorkerFactory(workerFactory).build()
         }
 
     private fun initializeNotificationSystem() {
         try {
-            android.util.Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_initializing_notification_system))
-            
+            Log.d(
+                getString(R.string.fintrack_application_tag),
+                getString(R.string.log_initializing_notification_system)
+            )
             // Initialize notification channels
             notificationHelper.initializeNotificationChannels()
-            
-            // Schedule daily notifications if enabled
-            if (notificationHelper.isDailySpendingNotificationEnabled()) {
-                android.util.Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_daily_notifications_enabled))
+            // --- THIS IS THE FIX ---
+            // We only schedule on the very first launch.
+            // After that, NotificationHelper is responsible for all scheduling.
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val isFirstLaunch = prefs.getBoolean(KEY_FIRST_LAUNCH, true)
+
+            if (isFirstLaunch && notificationHelper.isDailySpendingNotificationEnabled()) {
+                Log.d(
+                    getString(R.string.fintrack_application_tag),
+                    "First launch: Scheduling default daily notifications."
+                )
                 NotificationScheduler.scheduleDailyNotifications(this)
-                android.util.Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_daily_spending_notifications_scheduled))
+                prefs.edit { putBoolean(KEY_FIRST_LAUNCH, false) }
+            } else if (notificationHelper.isDailySpendingNotificationEnabled()) {
+                Log.d(
+                    getString(R.string.fintrack_application_tag),
+                    "App restart: Notifications are enabled, but we will NOT reschedule. WorkManager will handle the existing schedule."
+                )
             } else {
-                android.util.Log.d(getString(R.string.fintrack_application_tag), getString(R.string.log_daily_notifications_disabled))
+                Log.d(
+                    getString(R.string.fintrack_application_tag),
+                    getString(R.string.log_daily_notifications_disabled)
+                )
             }
         } catch (e: Exception) {
-            android.util.Log.e(getString(R.string.fintrack_application_tag), getString(R.string.log_failed_to_initialize_notification_system), e)
+            Log.e(
+                getString(R.string.fintrack_application_tag),
+                getString(R.string.log_failed_to_initialize_notification_system),
+                e
+            )
         }
     }
 }

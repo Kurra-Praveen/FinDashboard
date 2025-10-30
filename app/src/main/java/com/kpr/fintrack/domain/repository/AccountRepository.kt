@@ -18,4 +18,27 @@ interface AccountRepository {
     suspend fun deactivateAccount(accountId: Long)
     suspend fun getAccountCount(): Int
     suspend fun getAccountMonthlyAnalytics(accountId: Long, yearMonth: YearMonth): Account.MonthlyAnalytics
+
+    /**
+     * Creates and inserts a new account based on source data.
+     * It uses BankUtils to determine the bank name, icon, and color.
+     * If sender and messageBody are null, it defaults to a generic "Bank" account.
+     */
+    suspend fun createAccountFromSource(
+        accountNumber: String,
+        sender: String? = null,
+        messageBody: String? = null
+    ): Account
+
+    /**
+     * The new master method for Block 3.
+     * Fetches an account by its number.
+     * - If found and the bankName is "Bank", it attempts to update it with a specific name.
+     * - If not found, it calls `createAccountFromSource` to make a new one.
+     */
+    suspend fun getOrCreateAccount(
+        accountNumber: String,
+        sender: String? = null,
+        messageBody: String? = null
+    ): Account
 }
