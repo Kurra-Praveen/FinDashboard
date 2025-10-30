@@ -135,7 +135,7 @@ class ImageImportService : Service() {
                                     "Extracted from UPI Receipt ${parseResult.upiApp?.name}",
                                     receiptSource,
                                     result.savedFilePath,
-                                    receiptSource=receiptSource
+                                    receiptSource=imageUri.toString()
                                 )
                                 transaction?.let {
                                     FinTrackLogger.d(TAG, "Inserting transaction : $it")
