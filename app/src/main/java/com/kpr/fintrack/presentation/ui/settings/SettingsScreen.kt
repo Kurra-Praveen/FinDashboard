@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToNotifications: () -> Unit,
+    onNavigateToCategorySettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
         android.util.Log.d("SettingsScreen", "Composable entered")
@@ -64,7 +65,7 @@ fun SettingsScreen(
                     title = "Categories",
                     subtitle = "Manage transaction categories",
                     icon = Icons.Default.Category,
-                    onClick = { /* Navigate to categories */ }
+                    onClick = { onNavigateToCategorySettings()}
                 )
             }
 

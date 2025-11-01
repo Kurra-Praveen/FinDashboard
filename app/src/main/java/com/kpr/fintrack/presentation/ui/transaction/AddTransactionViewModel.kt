@@ -2,7 +2,9 @@ package com.kpr.fintrack.presentation.ui.transaction
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.runtime.collectAsState
 import androidx.core.content.FileProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kpr.fintrack.domain.model.Account
@@ -11,6 +13,7 @@ import com.kpr.fintrack.domain.model.QuickTransactionTemplate
 import com.kpr.fintrack.domain.model.TransactionFormData
 import com.kpr.fintrack.domain.repository.AccountRepository
 import com.kpr.fintrack.domain.repository.TransactionRepository
+import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +26,10 @@ import java.time.LocalDateTime
 import javax.inject.Inject
 import com.kpr.fintrack.utils.image.ReceiptImageProcessor
 import com.kpr.fintrack.utils.FinTrackLogger
+import com.kpr.fintrack.utils.parsing.CategoryMatcher
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 
 data class AddTransactionUiState(
     val formData: TransactionFormData = TransactionFormData(),
@@ -40,9 +47,11 @@ data class AddTransactionUiState(
 class AddTransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
+    private val categoryMatcher: CategoryMatcher,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
-
+    private val _categories = MutableStateFlow<List<Category>>(emptyList())
+    val categories: StateFlow<List<Category>> = _categories.asStateFlow()
     private val _uiState = MutableStateFlow(AddTransactionUiState())
     val uiState: StateFlow<AddTransactionUiState> = _uiState.asStateFlow()
 
@@ -51,6 +60,7 @@ class AddTransactionViewModel @Inject constructor(
 
     init {
         loadAccounts()
+        loadCategories()
     }
 
     private fun loadAccounts() {
@@ -59,6 +69,12 @@ class AddTransactionViewModel @Inject constructor(
                 _accounts.value = accountsList
             }
         }
+    }
+
+    private fun loadCategories() {
+        categoryMatcher.getLiveCategoriesFlow()
+            .onEach { list -> _categories.value = list }
+            .launchIn(viewModelScope)
     }
 
     fun loadTransaction(transactionId: Long) {
@@ -270,7 +286,7 @@ class AddTransactionViewModel @Inject constructor(
         if (merchantName.length < 3) return
 
         val lowerName = merchantName.lowercase()
-        val suggestedCategory = Category.getDefaultCategories().find { category ->
+        val suggestedCategory = categories.value.find { category ->
             category.keywords.any { keyword ->
                 lowerName.contains(keyword.lowercase()) || keyword.lowercase().contains(lowerName)
             }

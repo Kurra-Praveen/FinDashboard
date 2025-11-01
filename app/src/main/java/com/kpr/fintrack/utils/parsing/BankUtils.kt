@@ -66,4 +66,11 @@ object BankUtils {
             else -> "UNKNOWN"
         }
     }
+
+    object CategoryIconDefaults {
+        val defaultIcons = listOf(
+            "💰", "🧾", "🏠", "🚗", "🍔", "✈️", "🛒", "🏥",
+            "🎁", "👕", "💡", "🎉", "📚", "💻", "📞", "🍿"
+        )
+    }
 }

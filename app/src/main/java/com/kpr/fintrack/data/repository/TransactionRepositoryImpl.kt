@@ -58,7 +58,7 @@ class TransactionRepositoryImpl @Inject constructor(
                 config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                 pagingSourceFactory = { transactionDao.getPaginatedTransactions() }
             ).flow.map { pagingData ->
-                pagingData.map { it.toDomainModel(accountDao) }
+                pagingData.map { it.toDomainModel(accountDao, categoryDao) }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting paginated transactions: ${e.message}", e)
@@ -73,7 +73,7 @@ class TransactionRepositoryImpl @Inject constructor(
                 config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                 pagingSourceFactory = { transactionDao.getPaginatedTransactionsByAccountId(accountId) }
             ).flow.map { pagingData ->
-                pagingData.map { it.toDomainModel(accountDao) }
+                pagingData.map { it.toDomainModel(accountDao, categoryDao) }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting paginated transactions for accountId=$accountId: ${e.message}", e)
@@ -88,7 +88,7 @@ class TransactionRepositoryImpl @Inject constructor(
         Log.d(TAG, "Getting transactions between $startDate and $endDate")
         return try {
             transactionDao.getTransactionsByDateRange(startDate, endDate).map { entities ->
-                entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+                entities.asFlow().map { it.toDomainModel(accountDao, categoryDao) }.toList()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting transactions by date range: ${e.message}", e)
@@ -98,13 +98,13 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override fun getTransactionsByCategory(categoryId: Long): Flow<List<Transaction>> {
         return transactionDao.getTransactionsByCategory(categoryId).map { entities ->
-            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+            entities.asFlow().map { it.toDomainModel(accountDao, categoryDao) }.toList()
         }
     }
 
     override fun searchTransactions(query: String): Flow<List<Transaction>> {
         return transactionDao.searchTransactions(query).map { entities ->
-            entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+            entities.asFlow().map { it.toDomainModel(accountDao, categoryDao) }.toList()
         }
     }
 
@@ -125,14 +125,14 @@ class TransactionRepositoryImpl @Inject constructor(
                 )
             }
         ).flow.map { pagingData ->
-            pagingData.map { it.toDomainModel(accountDao) }
+            pagingData.map { it.toDomainModel(accountDao, categoryDao) }
         }
     }
 
     override fun getRecentTransactions(limit: Int): Flow<List<Transaction>> {
         return try {
             transactionDao.getRecentTransactions(limit).map { entities ->
-                entities.asFlow().map { it.toDomainModel(accountDao) }.toList()
+                entities.asFlow().map { it.toDomainModel(accountDao, categoryDao) }.toList()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting recent transactions with limit=$limit: ${e.message}", e)
@@ -182,7 +182,7 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getTransactionByReferenceId(referenceId: String): Transaction? {
-        return transactionDao.getTransactionByReferenceId(referenceId)?.toDomainModel(accountDao)
+        return transactionDao.getTransactionByReferenceId(referenceId)?.toDomainModel(accountDao, categoryDao)
     }
 
     override suspend fun getTotalSpending(startDate: LocalDateTime, endDate: LocalDateTime): BigDecimal {
@@ -216,6 +216,14 @@ class TransactionRepositoryImpl @Inject constructor(
         return categoryDao.getCategoriesByKeyword(keyword).map { it.toDomainModel() }
     }
 
+    override suspend fun updateCategory(category: Category) {
+        categoryDao.updateCategory(category.toEntity()) // Assumes mapper
+    }
+
+    override suspend fun deleteCategory(category: Category) {
+        categoryDao.deleteCategory(category.toEntity()) // Assumes mapper
+    }
+
     // UPI App operations
     override fun getAllUpiApps(): Flow<List<UpiApp>> {
         return upiAppDao.getAllUpiApps().map { entities ->
@@ -228,7 +236,7 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getTransactionById(id: Long): Transaction? {
-        return transactionDao.getTransactionById(id)?.toDomainModel(accountDao)
+        return transactionDao.getTransactionById(id)?.toDomainModel(accountDao,categoryDao)
     }
 
     // Add to TransactionRepositoryImpl class
@@ -265,6 +273,9 @@ class TransactionRepositoryImpl @Inject constructor(
         val debitTransactions = transactions.filter { it.isDebit }
         val totalSpent = debitTransactions.sumOf { it.amount }
 
+        // Load live categories from DB once
+        val categories = categoryDao.getAllCategories().first()
+
         return debitTransactions
             .groupBy { it.categoryId }
             .map { (category, categoryTransactions) ->
@@ -273,9 +284,11 @@ class TransactionRepositoryImpl @Inject constructor(
                     (categoryAmount / totalSpent * BigDecimal(100)).toFloat()
                 } else 0f
 
+                val cat = categories.find { it.id == category }
+
                 CategorySpendingData(
-                    categoryName = Category.getDefaultCategories().find { x -> x.id==category}?.name ?: "Unknown",
-                    categoryIcon = Category.getDefaultCategories().find { x -> x.id==category}?.icon ?: "Unknown",
+                    categoryName = cat?.name ?: "Unknown",
+                    categoryIcon = cat?.icon ?: "Unknown",
                     amount = categoryAmount,
                     percentage = percentage,
                     transactionCount = categoryTransactions.size
@@ -327,12 +340,17 @@ class TransactionRepositoryImpl @Inject constructor(
             .take(limit)
     }
 
-    override suspend fun getAnalyticsSummary(): AnalyticsSummary {
+    override suspend fun getAnalyticsSummary(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): AnalyticsSummary {
         Log.d(TAG, "Generating analytics summary")
         return try {
             val currentMonth = YearMonth.now()
-            val startOfMonth = currentMonth.atDay(1).atStartOfDay()
-            val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
+            //val startOfMonth = currentMonth.atDay(1).atStartOfDay()
+            //val endOfMonth = currentMonth.atEndOfMonth().atTime(23, 59, 59)
+            val startOfMonth=startDate
+            val endOfMonth=endDate
 
             AnalyticsSummary(
                 monthlyData = getMonthlySpendingData(6),
@@ -377,9 +395,12 @@ class TransactionRepositoryImpl @Inject constructor(
     private suspend fun findMostUsedCategory(startDate: LocalDateTime, endDate: LocalDateTime): String {
         val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
 
+        // Load live categories
+        val categories = categoryDao.getAllCategories().first()
+
         return transactions
             .filter { it.isDebit }
-            .groupBy { Category.getDefaultCategories().find { x -> x.id==it.categoryId}?.name ?: "Unknown"}
+            .groupBy { categories.find { x -> x.id==it.categoryId }?.name ?: "Unknown" }
             .maxByOrNull { it.value.size }
             ?.key ?: "No data"
     }

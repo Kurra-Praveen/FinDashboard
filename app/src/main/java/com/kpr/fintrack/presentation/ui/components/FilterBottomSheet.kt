@@ -20,8 +20,13 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.ui.platform.LocalContext
 import java.time.format.DateTimeFormatter
 import android.app.DatePickerDialog
+import android.icu.util.ULocale
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kpr.fintrack.utils.parsing.CategoryMatcher
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +62,10 @@ fun FilterBottomSheet(
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
+
+    // Use shared CategoriesViewModel
+    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    val categories by categoriesViewModel.categories.collectAsState()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -362,6 +371,10 @@ private fun CategoryFilter(
     onCategoryToggle: (Category) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // We now use the shared CategoriesViewModel above in the parent composable.
+    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    val categories by categoriesViewModel.categories.collectAsState()
+
     Column(modifier = modifier) {
         Text(
             text = "Categories",
@@ -371,7 +384,7 @@ private fun CategoryFilter(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Category.getDefaultCategories().forEach { category ->
+        categories.forEach { category ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

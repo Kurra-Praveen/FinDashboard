@@ -1,7 +1,10 @@
 package com.kpr.fintrack.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -10,8 +13,12 @@ import androidx.navigation.navArgument
 import com.kpr.fintrack.presentation.ui.accounts.AccountDetailScreen
 import com.kpr.fintrack.presentation.ui.accounts.AccountFormScreen
 import com.kpr.fintrack.presentation.ui.accounts.AccountsScreen
-import com.kpr.fintrack.presentation.ui.analytics.AnalyticsScreen
+import com.kpr.fintrack.presentation.ui.analystics.AnalyticsScreen
 import com.kpr.fintrack.presentation.ui.dashboard.DashboardScreen
+import com.kpr.fintrack.presentation.ui.settings.categeorySettings.CategoryFormScreen
+import com.kpr.fintrack.presentation.ui.settings.categeorySettings.CategoryFormViewModel
+import com.kpr.fintrack.presentation.ui.settings.categeorySettings.CategorySettingsScreen
+import com.kpr.fintrack.presentation.ui.settings.categeorySettings.CategorySettingsViewModel
 import com.kpr.fintrack.presentation.ui.transactions.TransactionsScreen
 import com.kpr.fintrack.presentation.ui.settings.SettingsScreen
 import com.kpr.fintrack.presentation.ui.settings.NotificationSettingsScreen
@@ -25,6 +32,19 @@ sealed class Screen(val route: String) {
     object Analytics : Screen("analytics")
     object Accounts : Screen("accounts")
     object AddAccount : Screen("add_account")
+
+    object CategorySettings : Screen("categorySettings")
+
+    object CategoryForm : Screen("categoryForm?categoryId={categoryId}") {
+        // Helper function to build the route for either add or edit
+        fun createRoute(categoryId: Long? = null): String {
+            return if (categoryId != null) {
+                "categoryForm?categoryId=$categoryId"
+            } else {
+                "categoryForm" // No ID means "add" mode
+            }
+        }
+    }
     object TransactionDetail : Screen("transaction_detail/{transactionId}") {
         fun createRoute(transactionId: Long) = "transaction_detail/$transactionId"
     }
@@ -128,6 +148,9 @@ fun FinTrackNavigation(
                 },
                 onNavigateToNotifications = {
                     navController.navigate(Screen.NotificationSettings.route)
+                },
+                onNavigateToCategorySettings = { // <-- ADD THIS
+                    navController.navigate(Screen.CategorySettings.route)
                 }
             )
         }
@@ -219,5 +242,50 @@ fun FinTrackNavigation(
                 }
             )
         }
+
+        composable(Screen.CategorySettings.route) {
+            val viewModel = hiltViewModel<CategorySettingsViewModel>()
+            val uiState by viewModel.uiState.collectAsState()
+
+            CategorySettingsScreen(
+                uiState = uiState,
+                onNavigateBack = { navController.popBackStack() },
+                onAddCategory = {
+                    // Navigate to the form with NO ID
+                    navController.navigate(Screen.CategoryForm.createRoute())
+                },
+                onEditCategory = { categoryId ->
+                    // Navigate to the form WITH an ID
+                    navController.navigate(Screen.CategoryForm.createRoute(categoryId))
+                },
+                onDeleteCategory = viewModel::deleteCategory
+            )
+        }
+
+        // --- ADD THIS NEW DESTINATION FOR THE FORM ---
+        composable(
+            route = Screen.CategoryForm.route,
+            arguments = listOf(navArgument("categoryId") {
+                type = NavType.StringType // Use StringType for optional args
+                nullable = true
+            })
+        ) {
+            // We will create this VM and Screen next
+            val viewModel = hiltViewModel<CategoryFormViewModel>()
+            val uiState by viewModel.uiState.collectAsState()
+
+            CategoryFormScreen (
+                uiState = uiState,
+                onNavigateBack = { navController.popBackStack() },
+                onSave = {
+                    viewModel.saveCategory()
+                    navController.popBackStack() // Go back after save
+                },
+                onFormStateChanged = viewModel::onFormStateChanged,
+                onKeywordAdded = viewModel::addKeywordToForm,
+                onKeywordRemoved = viewModel::removeKeywordFromForm
+            )
+        }
+
     }
 }

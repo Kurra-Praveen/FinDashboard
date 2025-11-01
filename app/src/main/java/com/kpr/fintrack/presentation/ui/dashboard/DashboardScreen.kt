@@ -24,7 +24,11 @@ import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.presentation.ui.components.SpendingOverviewCard
 import com.kpr.fintrack.presentation.ui.components.CategorySpendingCard
 import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
+import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
 import com.kpr.fintrack.utils.extensions.formatCurrency
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,6 +43,8 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    val categories by categoriesViewModel.categories.collectAsState()
 
     Scaffold(
         topBar = {
@@ -125,6 +131,12 @@ fun DashboardScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    item {
+                        TimeRangeSelector(
+                            selectedRange = uiState.selectedTimeRange,
+                            onRangeSelected = { viewModel.setTimeRange(it) }
+                        )
+                    }
 
                     item {
                         SpendingOverviewCard(
@@ -136,6 +148,7 @@ fun DashboardScreen(
                     item {
                         AnalyticsPreviewCard(
                             categoryData = uiState.topCategories,
+                            allCategories = categories,
                             onViewAllAnalytics = onNavigateToAnalytics
                         )
                     }
@@ -143,7 +156,7 @@ fun DashboardScreen(
                     if (uiState.topCategories.isNotEmpty()) {
                         item {
                             Text(
-                                text = "Top Categories",
+                                text = "Top Categories (${if (uiState.selectedTimeRange == DashboardTimeRange.THIS_MONTH) "This Month" else "Last 30 Days"})",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -213,11 +226,42 @@ fun DashboardScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeRangeSelector(
+    selectedRange: DashboardTimeRange,
+    onRangeSelected: (DashboardTimeRange) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf(
+        DashboardTimeRange.THIS_MONTH to "This Month",
+        DashboardTimeRange.LAST_30_DAYS to "Last 30 Days"
+    )
+
+    SingleChoiceSegmentedButtonRow(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        options.forEachIndexed { index, (range, label) ->
+            SegmentedButton(
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                onClick = { onRangeSelected(range) },
+                selected = (range == selectedRange)
+            ) {
+                Text(label)
+            }
+        }
+    }
+}
 @Composable
 private fun AnalyticsPreviewCard(
     categoryData: List<CategorySpendingData>,
-    onViewAllAnalytics: () -> Unit
+    onViewAllAnalytics: () -> Unit,
+    allCategories: List<Category>,
 ) {
+    // Use shared CategoriesViewModel to get live categories
+//    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+//    val categories by categoriesViewModel.categories.collectAsState()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -265,7 +309,7 @@ private fun AnalyticsPreviewCard(
                             CategoryIcon(category.category.id)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = Category.getDefaultCategories().find { x -> x.id==category.category.id}?.name ?: "Unknown",
+                                text = allCategories.find { x -> x.id==category.category.id}?.name ?: "Unknown",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -289,8 +333,11 @@ private fun AnalyticsPreviewCard(
 }
 @Composable
 fun CategoryIcon(categoryId: Long) {
+    // Use shared CategoriesViewModel to get live categories
+    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    val categories by categoriesViewModel.categories.collectAsState()
     val context = LocalContext.current
-    val category = Category.getDefaultCategories().find { it.id == categoryId }
+    val category = categories.find { it.id == categoryId }
 
     category?.let {
         // Try to resolve as drawable first
