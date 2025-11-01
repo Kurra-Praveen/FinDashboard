@@ -5,7 +5,6 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kpr.fintrack.BuildConfig
 import com.kpr.fintrack.data.database.converters.Converters
@@ -42,13 +41,6 @@ abstract class FinTrackDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
 
     companion object {
-        //private val MIGRATION_3_4 = object : Migration(3, 4) {
-//            override fun migrate(database: SupportSQLiteDatabase) {
-//                // Add new nullable columns for receipt path and source
-//                database.execSQL("ALTER TABLE transactions ADD COLUMN receiptImagePath TEXT")
-//                database.execSQL("ALTER TABLE transactions ADD COLUMN receiptSource TEXT")
-//            }
-        //}
 
         fun create(
             context: Context,
@@ -70,12 +62,12 @@ abstract class FinTrackDatabase : RoomDatabase() {
             )
                 .openHelperFactory(supportFactory)
                 //.addMigrations(MIGRATION_3_4)
-                .addCallback(object : RoomDatabase.Callback() {
+                .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                         android.util.Log.d("FinTrackDatabase", "Database created, populating default data")
                         coroutineScope.launch {
-                            populateDefaultData(context, passphrase.copyOf(), coroutineScope)
+                            populateDefaultData(context, passphrase.copyOf())
                         }
                     }
                 })
@@ -85,11 +77,19 @@ abstract class FinTrackDatabase : RoomDatabase() {
 
         private suspend fun populateDefaultData(
             context: Context,
-            passphrase: ByteArray,
-            coroutineScope: CoroutineScope
+            passphrase: ByteArray
         ) {
             try {
-                val database = create(context, passphrase, coroutineScope)
+                // Build a temporary database instance WITHOUT the creation callback to avoid recursion
+                val supportFactory = SupportOpenHelperFactory(passphrase, null, false)
+                val tempDb = Room.databaseBuilder(
+                    context,
+                    FinTrackDatabase::class.java,
+                    BuildConfig.DATABASE_NAME
+                )
+                    .openHelperFactory(supportFactory)
+                    .fallbackToDestructiveMigration()
+                    .build()
 
                 // Insert default categories
                 val defaultCategories = Category.getDefaultCategories().map { category ->
@@ -102,7 +102,7 @@ abstract class FinTrackDatabase : RoomDatabase() {
                         keywords = category.keywords.joinToString(",")
                     )
                 }
-                database.categoryDao().insertCategories(defaultCategories)
+                tempDb.categoryDao().insertCategories(defaultCategories)
 
                 // Insert default UPI apps
                 val defaultUpiApps = UpiApp.getDefaultUpiApps().map { upiApp ->
@@ -114,9 +114,11 @@ abstract class FinTrackDatabase : RoomDatabase() {
                         icon = upiApp.icon
                     )
                 }
-                database.upiAppDao().insertUpiApps(defaultUpiApps)
+                tempDb.upiAppDao().insertUpiApps(defaultUpiApps)
 
                 android.util.Log.d("FinTrackDatabase", "Default data populated successfully")
+                // Close the temporary instance to release resources
+                tempDb.close()
 
             } catch (e: Exception) {
                 android.util.Log.e("FinTrackDatabase", "Error populating default data", e)

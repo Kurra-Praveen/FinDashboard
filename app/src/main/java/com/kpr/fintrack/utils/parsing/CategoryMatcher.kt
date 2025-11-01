@@ -3,7 +3,11 @@ package com.kpr.fintrack.utils.parsing
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.domain.model.UpiApp
 import com.kpr.fintrack.domain.repository.TransactionRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -18,28 +22,21 @@ class CategoryMatcher @Inject constructor(
     private var categoryCache: List<Category> = emptyList()
 
     private val cacheMutex = Mutex()
+
     /**
      * Gets categories from the cache. If cache is empty,
      * it fetches from the database and populates the cache.
      */
     private suspend fun getLiveCategories(): List<Category> {
-        // Use the cache if it's already populated
-        if (categoryCache.isNotEmpty()) {
-            return categoryCache
-        }
-        // If cache is empty, fetch from DB
-        // Use mutex for coroutine-safe double-check locking
-        cacheMutex.withLock {
+        return cacheMutex.withLock {
             if (categoryCache.isEmpty()) {
                 categoryCache = transactionRepository.getAllCategories().first()
-
-                // Final fallback if DB is somehow empty (e.g., first run)
                 if (categoryCache.isEmpty()) {
                     categoryCache = Category.getDefaultCategories()
                 }
             }
+            categoryCache
         }
-        return categoryCache
     }
 
     /**
@@ -51,6 +48,16 @@ class CategoryMatcher @Inject constructor(
             categoryCache = emptyList()
         }
     }
+
+    fun getLiveCategoriesFlow(): Flow<List<Category>> =
+        transactionRepository.getAllCategories().onStart {
+            if (categoryCache.isEmpty()) {
+                categoryCache = transactionRepository.getAllCategories().first()
+            }
+        }.onEach { categories ->
+            categoryCache = categories
+        }
+
     /**
      * Finds the best category for a transaction based on live data.
      */

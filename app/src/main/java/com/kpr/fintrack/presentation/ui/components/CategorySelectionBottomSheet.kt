@@ -14,6 +14,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +28,10 @@ fun CategorySelectionBottomSheet(
     val bottomSheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
+
+    // Use shared CategoriesViewModel to get live categories
+    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    val categories by categoriesViewModel.categories.collectAsState()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -47,7 +53,7 @@ fun CategorySelectionBottomSheet(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            items(Category.getDefaultCategories()) { category ->
+            items(categories) { category ->
                 CategoryItem(
                     category = category,
                     isSelected = category.id == currentCategory.id,
@@ -87,10 +93,6 @@ private fun CategoryItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-//            Text(
-//                text = category.icon,
-//                style = MaterialTheme.typography.headlineSmall
-//            )
             CategoryIcon(category.id)
 
             Spacer(modifier = Modifier.width(12.dp))

@@ -8,7 +8,7 @@ data class TransactionFormData(
     val amount: String = "",
     val merchantName: String = "",
     val description: String = "",
-    val category: Category = Category.getDefaultCategories().first(),
+    val category: Category = Category.getDefaultCategories().last(),
     val date: LocalDateTime = LocalDateTime.now(),
     val isDebit: Boolean = true,
     val upiApp: UpiApp? = null,

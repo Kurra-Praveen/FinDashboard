@@ -37,6 +37,10 @@ interface TransactionRepository {
     suspend fun insertCategory(category: Category): Long
     suspend fun getCategoriesByKeyword(keyword: String): List<Category>
 
+    suspend fun updateCategory(category: Category)
+
+    suspend fun deleteCategory(category: Category)
+
     // UPI App operations
     fun getAllUpiApps(): Flow<List<UpiApp>>
     suspend fun getUpiAppById(id: Long): UpiApp?
@@ -48,7 +52,10 @@ interface TransactionRepository {
     suspend fun getCategorySpendingData(startDate: LocalDateTime, endDate: LocalDateTime): List<CategorySpendingData>
     suspend fun getWeeklySpendingData(weeksBack: Int = 4): List<WeeklySpendingData>
     suspend fun getTopMerchants(limit: Int = 10, startDate: LocalDateTime, endDate: LocalDateTime): List<TopMerchantData>
-    suspend fun getAnalyticsSummary(): AnalyticsSummary
+    suspend fun getAnalyticsSummary(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): AnalyticsSummary
 
 
 }

@@ -10,6 +10,7 @@ data class Category(
     val keywords: List<String> = emptyList()
 ) {
     companion object {
+        //use Category matcher or Category view model to get live categories from DB
         fun getDefaultCategories(): List<Category> {
             return try {
                 listOf(
@@ -59,7 +60,7 @@ data class Category(
                     ), Category(
                         id = 4L,
                         name = "UPI Transactions",
-                        icon = "upi_icon",
+                        icon = "\uD83D\uDCF2",
                         color = "#96CEB4",
                         isDefault = true,
                         keywords = listOf("atm", "cash", "withdrawal", "bank","received")

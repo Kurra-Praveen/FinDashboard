@@ -1,6 +1,7 @@
 package com.kpr.fintrack.data.mapper
 
 import com.kpr.fintrack.data.database.dao.AccountDao
+import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.entities.AccountEntity
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
@@ -13,9 +14,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 
-suspend fun TransactionEntity.toDomainModel(accountDao: AccountDao): Transaction = withContext(Dispatchers.IO) {
-    val defaultCategory = Category.getDefaultCategories().find { it.id == this@toDomainModel.categoryId }
-        ?: Category.getDefaultCategories().last() // Default to "Other"
+suspend fun TransactionEntity.toDomainModel(accountDao: AccountDao, categoryDao: CategoryDao): Transaction = withContext(Dispatchers.IO) {
+    // Try to get the category from DB first
+    val categoryFromDb = this@toDomainModel.categoryId.let { id ->
+        categoryDao.getCategoryById(id)?.toDomainModel()
+    }
+
+    val defaultCategory = categoryFromDb ?: Category.getDefaultCategories().last() // Fallback to "Other" from defaults
 
     val account = this@toDomainModel.accountId?.let { id ->
         accountDao.getAccountById(id).first()?.toDomainModel()

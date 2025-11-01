@@ -12,7 +12,8 @@ import com.kpr.fintrack.data.mapper.toDomainModel
 
 class TransactionPagingSource(
     private val transactionDao: TransactionDao,
-    private val accountDao: AccountDao
+    private val accountDao: AccountDao,
+    private val categoryDao: com.kpr.fintrack.data.database.dao.CategoryDao
 ) : PagingSource<Int, Transaction>() {
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Transaction> {
@@ -21,7 +22,7 @@ class TransactionPagingSource(
         return try {
             val entities = transactionDao.getPaginatedTransactions(params.loadSize, page * params.loadSize)
             Log.d("TransactionPagingSource", "loaded ${entities.size} entities for page=$page")
-            val transactions = entities.map { it.toDomainModel(accountDao) }
+            val transactions = entities.map { it.toDomainModel(accountDao, categoryDao) }
             LoadResult.Page(
                 data = transactions,
                 prevKey = if (page == 0) null else page - 1,

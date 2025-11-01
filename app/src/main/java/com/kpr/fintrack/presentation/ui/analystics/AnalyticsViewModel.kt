@@ -12,8 +12,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
@@ -22,9 +25,15 @@ import javax.inject.Inject
 
 data class AnalyticsUiState(
     val isLoading: Boolean = true,
+    val selectedTimeRange: AnalyticsTimeRange = AnalyticsTimeRange.THIS_MONTH,
     val analyticsSummary: AnalyticsSummary? = null,
     val error: String? = null
 )
+
+enum class AnalyticsTimeRange {
+    THIS_MONTH,
+    LAST_30_DAYS
+}
 
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
@@ -36,29 +45,46 @@ class AnalyticsViewModel @Inject constructor(
 
     init {
         android.util.Log.d("AnalyticsViewModel", "ViewModel initialized")
-        loadAnalytics()
+        loadAnalytics(range = _uiState.value.selectedTimeRange)
     }
 
-    private fun loadAnalytics() {
+    private fun loadAnalytics(range: AnalyticsTimeRange) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                android.util.Log.d("AnalyticsViewModel", "Loading analytics...")
-                _uiState.value = AnalyticsUiState(isLoading = true)
+                // --- 4. ADD DATE CALCULATION LOGIC ---
+                val (startOfPeriod, endOfPeriod) = when (range) {
+                    AnalyticsTimeRange.THIS_MONTH -> {
+                        val currentMonth = YearMonth.now()
+                        Pair(
+                            currentMonth.atDay(1).atStartOfDay(),
+                            currentMonth.atEndOfMonth().atTime(23, 59, 59)
+                        )
+                    }
+                    AnalyticsTimeRange.LAST_30_DAYS -> {
+                        val end = LocalDateTime.now()
+                        val start = end.minusDays(30).with(LocalTime.MIN)
+                        Pair(start, end)
+                    }
+                }
 
-                // ✅ Use safe analytics loading with fallback
-                val summary = createSafeAnalyticsSummary()
-                android.util.Log.d("AnalyticsViewModel", "Analytics loaded successfully")
-
-                _uiState.value = AnalyticsUiState(
-                    isLoading = false,
-                    analyticsSummary = summary
+                // --- 5. PASS DATES TO THE REPOSITORY ---
+                val summary = transactionRepository.getAnalyticsSummary(
+                    startDate = startOfPeriod,
+                    endDate = endOfPeriod
                 )
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        analyticsSummary = summary,
+                        selectedTimeRange = range
+                    )
+                }
             } catch (e: Exception) {
-                android.util.Log.e("AnalyticsViewModel", "Error loading analytics: ${e.message}", e)
-                _uiState.value = AnalyticsUiState(
-                    isLoading = false,
-                    error = "Failed to load analytics: ${e.message}"
-                )
+                _uiState.update {
+                    it.copy(isLoading = false, error = e.message ?: "Unknown error")
+                }
             }
         }
     }
@@ -67,7 +93,8 @@ class AnalyticsViewModel @Inject constructor(
     private suspend fun createSafeAnalyticsSummary(): AnalyticsSummary {
         return try {
             // Try to get real data from repository
-            val realSummary = transactionRepository.getAnalyticsSummary()
+            val realSummary = transactionRepository.getAnalyticsSummary(LocalDateTime.now(),
+                LocalDateTime.now())
             android.util.Log.d("AnalyticsViewModel", "Got real analytics summary")
             realSummary
         } catch (e: Exception) {
@@ -133,6 +160,14 @@ class AnalyticsViewModel @Inject constructor(
 
     fun refresh() {
         android.util.Log.d("AnalyticsViewModel", "Refresh requested")
-        loadAnalytics()
+        loadAnalytics(range = _uiState.value.selectedTimeRange)
+    }
+
+    // --- 6. ADD THIS NEW FUNCTION ---
+    fun setTimeRange(range: AnalyticsTimeRange) {
+        if (range == _uiState.value.selectedTimeRange && !_uiState.value.isLoading) return
+
+        // Load data for the new range
+        loadAnalytics(range = range)
     }
 }

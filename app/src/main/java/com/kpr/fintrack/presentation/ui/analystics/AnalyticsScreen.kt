@@ -1,10 +1,10 @@
-package com.kpr.fintrack.presentation.ui.analytics
+package com.kpr.fintrack.presentation.ui.analystics
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,11 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kpr.fintrack.presentation.ui.analystics.AnalyticsViewModel // ✅ Fixed typo: analytics not analystics
 import com.kpr.fintrack.presentation.ui.components.charts.CategoryPieChart
 import com.kpr.fintrack.presentation.ui.components.charts.MonthlySpendingChart
 import com.kpr.fintrack.presentation.ui.components.charts.WeeklySpendingChart
 import com.kpr.fintrack.presentation.ui.components.StatCard
+import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
 import com.kpr.fintrack.utils.extensions.formatCurrency
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,10 +26,12 @@ fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    val allCategories by categoriesViewModel.categories.collectAsState()
 
     // ✅ Add debug effect to see what's happening
     LaunchedEffect(uiState) {
-        android.util.Log.d("AnalyticsScreen", "UI State: isLoading=${uiState.isLoading}, error=${uiState.error}, hasData=${uiState.analyticsSummary != null}")
+        Log.d("AnalyticsScreen", "UI State: isLoading=${uiState.isLoading}, error=${uiState.error}, hasData=${uiState.analyticsSummary != null}")
     }
 
     Scaffold(
@@ -89,7 +91,7 @@ fun AnalyticsScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = {
-                            android.util.Log.d("AnalyticsScreen", "Retry button clicked")
+                            Log.d("AnalyticsScreen", "Retry button clicked")
                             viewModel.refresh()
                         }) {
                             Text("Retry")
@@ -107,7 +109,12 @@ fun AnalyticsScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-
+                    item {
+                        AnalyticsTimeRangeSelector(
+                            selectedRange = uiState.selectedTimeRange,
+                            onRangeSelected = { viewModel.setTimeRange(it) }
+                        )
+                    }
                     // Summary Stats
                     item {
                         Row(
@@ -177,6 +184,32 @@ fun AnalyticsScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AnalyticsTimeRangeSelector(
+    selectedRange: AnalyticsTimeRange,
+    onRangeSelected: (AnalyticsTimeRange) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf(
+        AnalyticsTimeRange.THIS_MONTH to "This Month",
+        AnalyticsTimeRange.LAST_30_DAYS to "Last 30 Days"
+    )
+
+    SingleChoiceSegmentedButtonRow(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        options.forEachIndexed { index, (range, label) ->
+            SegmentedButton(
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                onClick = { onRangeSelected(range) },
+                selected = (range == selectedRange)
+            ) {
+                Text(label)
             }
         }
     }
