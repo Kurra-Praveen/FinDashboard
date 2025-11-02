@@ -4,6 +4,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.YearMonth
+import java.time.ZoneOffset
 
 fun LocalDateTime.formatRelativeTime(): String {
     val now = LocalDateTime.now()
@@ -19,3 +20,7 @@ fun LocalDateTime.formatRelativeTime(): String {
 }
 
 fun LocalDateTime.toYearMonth(): YearMonth = YearMonth.of(this.year, this.month)
+
+ fun YearMonth.startOfMonth(): LocalDateTime = this.atDay(1).atStartOfDay()
+ fun YearMonth.endOfMonth(): LocalDateTime = this.atEndOfMonth().atTime(23, 59, 59)
+ fun YearMonth.toTimestamp(): Long = this.atDay(1).atStartOfDay().toEpochSecond(ZoneOffset.UTC)

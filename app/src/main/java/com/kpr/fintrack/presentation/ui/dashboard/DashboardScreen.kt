@@ -1,5 +1,12 @@
 package com.kpr.fintrack.presentation.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.AdsClick
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kpr.fintrack.domain.model.Category
-import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.presentation.ui.components.SpendingOverviewCard
 import com.kpr.fintrack.presentation.ui.components.CategorySpendingCard
 import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
@@ -29,7 +36,10 @@ import com.kpr.fintrack.utils.extensions.formatCurrency
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import java.math.BigDecimal
+import com.kpr.fintrack.domain.model.BudgetDetails
+import com.kpr.fintrack.presentation.ui.budget.AnimatedProgressIndicator
+import com.kpr.fintrack.utils.FormatUtils
+import com.kpr.fintrack.utils.FinTrackLogger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,10 +48,14 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToAnalytics: () -> Unit,
     onNavigateToAccounts: () -> Unit,
+    onNavigateToBudgets: () -> Unit,
     onTransactionClick: (Long) -> Unit,
     onAddTransaction: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
+    val TAG = "DashboardScreen"
+    FinTrackLogger.d(TAG, "DashboardScreen composable entered.")
+
     val uiState by viewModel.uiState.collectAsState()
     val categoriesViewModel: CategoriesViewModel = hiltViewModel()
     val categories by categoriesViewModel.categories.collectAsState()
@@ -57,6 +71,12 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToBudgets) {
+                    Icon(
+                        Icons.Rounded.AdsClick,
+                        contentDescription = "Budgets"
+                    )
+                }
                     IconButton(onClick = onNavigateToAccounts) {
                         Icon(
                             imageVector = Icons.Default.AccountBalance,
@@ -89,6 +109,7 @@ fun DashboardScreen(
 
         when {
             uiState.isLoading -> {
+                FinTrackLogger.d(TAG, "Dashboard is loading...")
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -98,6 +119,7 @@ fun DashboardScreen(
             }
 
             uiState.error != null -> {
+                FinTrackLogger.e(TAG, "Dashboard error: ${uiState.error}")
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -124,6 +146,7 @@ fun DashboardScreen(
             }
 
             else -> {
+                FinTrackLogger.d(TAG, "Dashboard content displayed. UI State: $uiState")
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -146,6 +169,25 @@ fun DashboardScreen(
                         )
                     }
                     item {
+                        // This card will only appear if a total budget is set
+                        // It will use smooth animations to appear and disappear
+                        AnimatedVisibility(
+                            visible = uiState.totalBudgetDetails != null,
+                            enter = fadeIn(animationSpec = spring()) + expandVertically (animationSpec = spring()),
+                            exit = fadeOut(animationSpec = spring()) + shrinkVertically (animationSpec = spring())
+                        ) {
+                            // We check null again because of the exit animation
+                            uiState.totalBudgetDetails?.let { details ->
+                                FinTrackLogger.d(TAG, "Total budget details: $details")
+                                TotalBudgetSummaryCard(
+                                    details = details,
+                                    modifier = Modifier.padding(top = 16.dp)
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        FinTrackLogger.d(TAG, "Analytics preview category data: ${uiState.topCategories}")
                         AnalyticsPreviewCard(
                             categoryData = uiState.topCategories,
                             allCategories = categories,
@@ -213,6 +255,7 @@ fun DashboardScreen(
 
                     if (uiState.isEmpty) {
                         item {
+                            FinTrackLogger.d(TAG, "Empty state card displayed.")
                             EmptyStateCard(
                                 onStartInboxScan = {
                                     viewModel.startInboxScan()
@@ -225,7 +268,69 @@ fun DashboardScreen(
         }
     }
 }
+@Composable
+private fun TotalBudgetSummaryCard(
+    details: BudgetDetails,
+    modifier: Modifier = Modifier
+) {
+    FinTrackLogger.d("TotalBudgetSummaryCard", "Displaying budget details: $details")
+    val spent = remember(details.spent) { FormatUtils.formatCurrency(details.spent) }
+    val total = remember(details.budget.amount) { FormatUtils.formatCurrency(details.budget.amount) }
+    val percentage = (details.progress * 100).toInt()
+    val percentageLeft = (100 - percentage).coerceAtLeast(0)
 
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize() // Smoothly animates text changes
+        ) {
+            Text(
+                text = "Monthly Budget",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(12.dp))
+
+            // Use the animated progress bar we built in Milestone 3
+            AnimatedProgressIndicator(
+                progress = details.progress,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+
+            // Spent vs Total
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Spent: $spent",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (details.isOverspent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "of $total",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Percentage Left
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = if (details.isOverspent) "Overspent!" else "$percentageLeft% remaining",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (details.isOverspent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeRangeSelector(
@@ -258,6 +363,7 @@ private fun AnalyticsPreviewCard(
     onViewAllAnalytics: () -> Unit,
     allCategories: List<Category>,
 ) {
+    FinTrackLogger.d("AnalyticsPreviewCard", "Displaying analytics preview with category data: $categoryData")
     // Use shared CategoriesViewModel to get live categories
 //    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
 //    val categories by categoriesViewModel.categories.collectAsState()

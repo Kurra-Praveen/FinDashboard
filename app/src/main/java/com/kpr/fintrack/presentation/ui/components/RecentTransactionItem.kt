@@ -40,10 +40,6 @@ fun RecentTransactionItem(
         ) {
             // Category icon
             CategoryIcon(transaction.category.id)
-//            Text(
-//                text = transaction.category.icon,
-//                style = MaterialTheme.typography.headlineSmall
-//            )
 
             Spacer(modifier = Modifier.width(12.dp))
 

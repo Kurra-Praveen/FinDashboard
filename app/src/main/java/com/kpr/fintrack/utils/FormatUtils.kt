@@ -71,4 +71,28 @@ object FormatUtils {
      */
     fun LocalDate.formatShortDate(): String =
         this.format(shortDateFormatter())
+
+    // Create a reusable NumberFormat instance for Indian currency (₹)
+    // This is efficient as we don't recreate it on every call.
+    private val indianCurrencyFormat: NumberFormat by lazy {
+        val locale = Locale("en", "IN")
+        NumberFormat.getCurrencyInstance(locale)
+    }
+
+    /**
+     * Formats a BigDecimal value into a proper currency string.
+     *
+     * Example: 10500.50 -> "₹10,500.50"
+     *
+     * @param amount The BigDecimal amount to format.
+     * @return A formatted currency string (e.g., "₹10,500.50").
+     */
+    fun formatCurrency(amount: BigDecimal): String {
+        return try {
+            indianCurrencyFormat.format(amount)
+        } catch (e: IllegalArgumentException) {
+            // Fallback in case of any formatting error
+            "₹${amount.toPlainString()}"
+        }
+    }
 }
