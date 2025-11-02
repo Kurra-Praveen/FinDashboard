@@ -14,6 +14,7 @@ import com.kpr.fintrack.presentation.ui.accounts.AccountDetailScreen
 import com.kpr.fintrack.presentation.ui.accounts.AccountFormScreen
 import com.kpr.fintrack.presentation.ui.accounts.AccountsScreen
 import com.kpr.fintrack.presentation.ui.analystics.AnalyticsScreen
+import com.kpr.fintrack.presentation.ui.budget.BudgetScreen
 import com.kpr.fintrack.presentation.ui.dashboard.DashboardScreen
 import com.kpr.fintrack.presentation.ui.settings.categeorySettings.CategoryFormScreen
 import com.kpr.fintrack.presentation.ui.settings.categeorySettings.CategoryFormViewModel
@@ -32,7 +33,7 @@ sealed class Screen(val route: String) {
     object Analytics : Screen("analytics")
     object Accounts : Screen("accounts")
     object AddAccount : Screen("add_account")
-
+    object Budgets : Screen("budgets")
     object CategorySettings : Screen("categorySettings")
 
     object CategoryForm : Screen("categoryForm?categoryId={categoryId}") {
@@ -91,8 +92,14 @@ fun FinTrackNavigation(
                 },
                 onAddTransaction = {
                     navController.navigate("add_transaction")
-                }
+                },
+                onNavigateToBudgets = { navController.navigate(Screen.Budgets.route) }
                     )
+        }
+        composable(Screen.Budgets.route) {
+            BudgetScreen (
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.Analytics.route) {
             AnalyticsScreen(

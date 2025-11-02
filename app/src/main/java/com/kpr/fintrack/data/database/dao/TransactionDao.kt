@@ -35,6 +35,14 @@ interface TransactionDao {
         endDate: LocalDateTime
     ): List<TransactionEntity>
 
+    @Query("""
+        SELECT COALESCE(SUM(amount), '0.0') 
+        FROM transactions
+        WHERE isDebit = 1 
+        AND date BETWEEN :startDate AND :endDate
+    """)
+    fun getTotalSpendingForDateRange(startDate: LocalDateTime, endDate: LocalDateTime): Flow<BigDecimal>
+
     @Query("SELECT * FROM transactions WHERE merchantName LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' ORDER BY date DESC")
     fun searchTransactions(query: String): Flow<List<TransactionEntity>>
 

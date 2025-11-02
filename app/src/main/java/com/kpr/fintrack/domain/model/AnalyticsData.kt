@@ -1,6 +1,7 @@
 package com.kpr.fintrack.domain.model
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
 import java.math.BigDecimal
 import java.time.YearMonth
 
@@ -19,7 +20,8 @@ data class CategorySpendingData(
     val categoryIcon: String,
     val amount: BigDecimal,
     val percentage: Float,
-    val transactionCount: Int
+    val transactionCount: Int,
+    val color: String?
 )
 
 @Immutable

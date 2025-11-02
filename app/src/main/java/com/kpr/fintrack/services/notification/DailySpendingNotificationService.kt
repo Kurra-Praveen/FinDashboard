@@ -129,7 +129,8 @@ class DailySpendingNotificationService @AssistedInject constructor(
                     categoryIcon = category.icon,
                     amount = amount,
                     percentage = percentage,
-                    transactionCount = transactions.size
+                    transactionCount = transactions.size,
+                    color = category.color
                 )
             }
             .sortedByDescending { it.amount }

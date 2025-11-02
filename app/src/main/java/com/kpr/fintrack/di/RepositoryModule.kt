@@ -1,6 +1,8 @@
 package com.kpr.fintrack.di
 
+import com.kpr.fintrack.data.repository.BudgetRepositoryImpl
 import com.kpr.fintrack.data.repository.TransactionRepositoryImpl
+import com.kpr.fintrack.domain.repository.BudgetRepository
 import com.kpr.fintrack.domain.repository.TransactionRepository
 import dagger.Binds
 import dagger.Module
@@ -20,4 +22,10 @@ abstract class RepositoryModule {
     abstract fun bindTransactionRepository(
         transactionRepositoryImpl: TransactionRepositoryImpl
     ): TransactionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBudgetRepository(
+        budgetRepositoryImpl: BudgetRepositoryImpl
+    ): BudgetRepository
 }

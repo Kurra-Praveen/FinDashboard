@@ -291,7 +291,8 @@ class TransactionRepositoryImpl @Inject constructor(
                     categoryIcon = cat?.icon ?: "Unknown",
                     amount = categoryAmount,
                     percentage = percentage,
-                    transactionCount = categoryTransactions.size
+                    transactionCount = categoryTransactions.size,
+                    color = cat?.color
                 )
             }
             .sortedByDescending { it.amount }
@@ -355,7 +356,7 @@ class TransactionRepositoryImpl @Inject constructor(
             AnalyticsSummary(
                 monthlyData = getMonthlySpendingData(6),
                 categoryData = getCategorySpendingData(startOfMonth, endOfMonth),
-                weeklyData = getWeeklySpendingData(4),
+                weeklyData = getWeeklySpendingData(8),
                 topMerchants = getTopMerchants(5, startOfMonth, endOfMonth),
                 averageDailySpending = calculateAverageDailySpending(startOfMonth, endOfMonth),
                 highestSpendingDay = calculateHighestSpendingDay(startOfMonth, endOfMonth),

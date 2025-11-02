@@ -5,14 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.work.impl.Migration_3_4
 import com.kpr.fintrack.BuildConfig
 import com.kpr.fintrack.data.database.converters.Converters
 import com.kpr.fintrack.data.database.dao.AccountDao
+import com.kpr.fintrack.data.database.dao.BudgetDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
 import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dao.UpiAppDao
 import com.kpr.fintrack.data.database.entities.AccountEntity
+import com.kpr.fintrack.data.database.entities.BudgetEntity
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import com.kpr.fintrack.data.database.entities.UpiAppEntity
@@ -27,9 +31,10 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         TransactionEntity::class,
         CategoryEntity::class,
         UpiAppEntity::class,
-        AccountEntity::class
+        AccountEntity::class,
+        BudgetEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -39,8 +44,32 @@ abstract class FinTrackDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun upiAppDao(): UpiAppDao
     abstract fun accountDao(): AccountDao
+    abstract fun budgetDao(): BudgetDao
 
     companion object {
+        const val DATABASE_NAME = "fintrack.db"
+
+//        val MIGRATION_4_5 = object : Migration(4, 5) {
+//            override fun migrate(db: SupportSQLiteDatabase) {
+//                // Step 1: Create the table (without the index)
+//                db.execSQL("""
+//                    CREATE TABLE IF NOT EXISTS `budget_table` (
+//                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+//                        `categoryId` INTEGER,
+//                        `amount` TEXT NOT NULL,
+//                        `period` TEXT NOT NULL,
+//                        `startDate` INTEGER NOT NULL,
+//                        FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+//                    )
+//                """)
+//
+//                // Step 2: Create the unique index that Room expects
+//                db.execSQL("""
+//                    CREATE UNIQUE INDEX IF NOT EXISTS `index_budget_table_categoryId_startDate`
+//                    ON `budget_table` (`categoryId`, `startDate`)
+//                """)
+//            }
+//        }
 
         fun create(
             context: Context,
@@ -71,6 +100,8 @@ abstract class FinTrackDatabase : RoomDatabase() {
                         }
                     }
                 })
+                //.addMigrations(Migration_3_4) // Keep existing migrations
+                //.addMigrations(FinTrackDatabase.MIGRATION_4_5)
                 .fallbackToDestructiveMigration() // For development; migrations are provided for 3->4
                 .build()
         }

@@ -127,10 +127,10 @@ class AnalyticsViewModel @Inject constructor(
         }
 
         val categoryData = listOf(
-            CategorySpendingData("Food", "🍕", BigDecimal("2000"), 40f, 25),
-            CategorySpendingData("Transportation", "🚗", BigDecimal("1500"), 30f, 15),
-            CategorySpendingData("Shopping", "🛒", BigDecimal("1000"), 20f, 10),
-            CategorySpendingData("Bills", "💡", BigDecimal("500"), 10f, 5)
+            CategorySpendingData("Food", "🍕", BigDecimal("2000"), 40f, 25,color = null),
+            CategorySpendingData("Transportation", "🚗", BigDecimal("1500"), 30f, 15,null),
+            CategorySpendingData("Shopping", "🛒", BigDecimal("1000"), 20f, 10,null),
+            CategorySpendingData("Bills", "💡", BigDecimal("500"), 10f, 5,null)
         )
 
         val weeklyData = (1..4).map { week ->
