@@ -10,6 +10,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink // (NEW) Import the correct builder
 import com.kpr.fintrack.presentation.ui.accounts.AccountDetailScreen
 import com.kpr.fintrack.presentation.ui.accounts.AccountFormScreen
 import com.kpr.fintrack.presentation.ui.accounts.AccountsScreen
@@ -25,6 +26,9 @@ import com.kpr.fintrack.presentation.ui.settings.SettingsScreen
 import com.kpr.fintrack.presentation.ui.settings.NotificationSettingsScreen
 import com.kpr.fintrack.presentation.ui.transaction.AddTransactionScreen
 import com.kpr.fintrack.presentation.ui.transaction.TransactionDetailScreen
+import java.net.URLEncoder
+
+const val FINTRACK_URI = "app://fintrack"
 
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
@@ -46,9 +50,34 @@ sealed class Screen(val route: String) {
             }
         }
     }
+
     object TransactionDetail : Screen("transaction_detail/{transactionId}") {
         fun createRoute(transactionId: Long) = "transaction_detail/$transactionId"
+
+        // (MODIFIED) Use the navDeepLink builder
+        val deepLink = navDeepLink {
+            uriPattern = "$FINTRACK_URI/transaction_detail/{transactionId}"
+        }
     }
+
+    object AddTransaction : Screen("add_transaction") {
+        const val routeWithArgs = "add_transaction?originalText={originalText}"
+
+        // (MODIFIED) Use the navDeepLink builder
+        val deepLink = navDeepLink {
+            uriPattern = "$FINTRACK_URI/add_transaction?originalText={originalText}"
+        }
+
+        fun createRoute(originalText: String? = null): String {
+            return if (originalText != null) {
+                val encodedText = URLEncoder.encode(originalText, "UTF-8")
+                "add_transaction?originalText=$encodedText"
+            } else {
+                "add_transaction"
+            }
+        }
+    }
+
     object AccountDetail : Screen("account_detail/{accountId}") {
         fun createRoute(accountId: Long) = "account_detail/$accountId"
     }
@@ -79,7 +108,7 @@ fun FinTrackNavigation(
                 onTransactionClick = { transactionId ->
                     // ✅ Add debug log here too
                     android.util.Log.d("Navigation", "Navigating to transaction: $transactionId")
-                    navController.navigate("transaction_detail/$transactionId")
+                    navController.navigate(Screen.TransactionDetail.createRoute(transactionId))
                 },
                 onNavigateToAnalytics = {
                     // ✅ Add analytics navigation
@@ -91,7 +120,7 @@ fun FinTrackNavigation(
                     navController.navigate(Screen.Accounts.route)
                 },
                 onAddTransaction = {
-                    navController.navigate("add_transaction")
+                    navController.navigate(Screen.AddTransaction.createRoute())
                 },
                 onNavigateToBudgets = { navController.navigate(Screen.Budgets.route) }
                     )
@@ -108,7 +137,15 @@ fun FinTrackNavigation(
                 }
             )
         }
-        composable("add_transaction") {
+        composable(
+            route = Screen.AddTransaction.routeWithArgs,
+            arguments = listOf(navArgument("originalText") {
+                type = NavType.StringType
+                nullable = true
+            }),
+            deepLinks = listOf(Screen.AddTransaction.deepLink) // This is now valid
+        ) { backStackEntry ->
+            val prefilledText = backStackEntry.arguments?.getString("originalText")
             AddTransactionScreen(
                 onNavigateBack = {
                     navController.popBackStack()
@@ -162,12 +199,13 @@ fun FinTrackNavigation(
             )
         }
         composable(
-                route = "transaction_detail/{transactionId}",
-        arguments = listOf(
-            navArgument("transactionId") {
-                type = NavType.LongType
-            }
-        )
+            route = Screen.TransactionDetail.route,
+            arguments = listOf(
+                navArgument("transactionId") {
+                    type = NavType.LongType
+                }
+            ),
+            deepLinks = listOf(Screen.TransactionDetail.deepLink) // This is now valid
         ) { backStackEntry ->
         val transactionId = backStackEntry.arguments?.getLong("transactionId") ?: 0L
             TransactionDetailScreen(

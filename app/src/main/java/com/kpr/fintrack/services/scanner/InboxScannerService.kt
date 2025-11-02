@@ -11,6 +11,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.kpr.fintrack.R
 import com.kpr.fintrack.data.datasource.sms.SmsDataSource
+import com.kpr.fintrack.domain.manager.AppNotificationManager
 import com.kpr.fintrack.domain.model.Account
 import com.kpr.fintrack.domain.model.createTransactionFromParseResult
 import com.kpr.fintrack.domain.repository.TransactionRepository
@@ -59,6 +60,9 @@ class InboxScannerService : Service() {
 
     @Inject
     lateinit var secureLogger: SecureLogger
+
+    @Inject
+    lateinit var appNotificationManager: AppNotificationManager
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var scanJob: Job? = null
@@ -121,7 +125,7 @@ class InboxScannerService : Service() {
             try {
                 secureLogger.i("INBOX_SCANNER", "Starting inbox scan")
 
-                val messages = smsDataSource.getAllSmsMessages().take(1000)
+                val messages = smsDataSource.getAllSmsMessages().take(20)
                 _scanProgress.value = ScanProgress(total = messages.size)
 
                 updateNotification(0, messages.size)
@@ -156,9 +160,7 @@ class InboxScannerService : Service() {
                                 val account = parseResult.accountNumber?.let { accountNumber ->
                                     try {
                                         accountRepository.getOrCreateAccount(
-                                            accountNumber,
-                                            smsMessage.sender,
-                                            smsMessage.body
+                                            accountNumber, smsMessage.sender, smsMessage.body
                                         )
 
                                     } catch (e: Exception) {
@@ -170,7 +172,7 @@ class InboxScannerService : Service() {
                                     }
                                 }
 
-                                val transaction=createTransactionFromParseResult(
+                                val transaction = createTransactionFromParseResult(
                                     parseResult = parseResult,
                                     category = category,
                                     account = account,
@@ -178,21 +180,6 @@ class InboxScannerService : Service() {
                                     sender = smsMessage.sender
                                 )
 
-//                                val transaction = com.kpr.fintrack.domain.model.Transaction(
-//                                    amount = parseResult.amount ?: return@forEachIndexed,
-//                                    isDebit = parseResult.isDebit ?: true,
-//                                    merchantName = parseResult.merchantName ?: "Unknown",
-//                                    description = parseResult.description ?: smsMessage.body,
-//                                    category = category,
-//                                    date = parseResult.extractedDate ?: LocalDateTime.now(),
-//                                    upiApp = parseResult.upiApp,
-//                                    accountNumber = parseResult.accountNumber,
-//                                    referenceId = parseResult.referenceId,
-//                                    smsBody = smsMessage.body,
-//                                    sender = smsMessage.sender,
-//                                    confidence = parseResult.confidence,
-//                                    account = account
-//                                )
                                 transaction?.let {
                                     secureLogger.d(
                                         "INBOX_SCANNER",
@@ -229,12 +216,12 @@ class InboxScannerService : Service() {
                     "INBOX_SCANNER",
                     "Inbox scan completed. Processed: $processedCount, Success: $successCount"
                 )
-                showCompletionNotification(successCount)
+                appNotificationManager.showScanCompleteNotification(successCount)
 
             } catch (e: Exception) {
                 secureLogger.e("INBOX_SCANNER", "Error during inbox scan", e)
                 _scanProgress.value = ScanProgress(error = e.message ?: "Unknown error")
-                showErrorNotification(e.message ?: "Unknown error")
+                appNotificationManager.showScanErrorNotification(e.message ?: "Unknown error")
             } finally {
                 stopSelf()
             }
@@ -282,75 +269,9 @@ class InboxScannerService : Service() {
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
-    private fun showCompletionNotification(successCount: Int) {
-        val mainIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification =
-            NotificationCompat.Builder(this, CHANNEL_ID).setContentTitle("Inbox Scan Complete")
-                .setContentText("Found and imported $successCount transactions")
-                .setSmallIcon(R.drawable.ic_launcher_foreground).setContentIntent(mainIntent)
-                .setAutoCancel(true).build()
-
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID + 1, notification)
-    }
-
-    private fun showErrorNotification(error: String) {
-        val notification =
-            NotificationCompat.Builder(this, CHANNEL_ID).setContentTitle("Inbox Scan Failed")
-                .setContentText(error).setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setAutoCancel(true).build()
-
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID + 2, notification)
-    }
-
     override fun onDestroy() {
         scanJob?.cancel()
         serviceScope.cancel()
         super.onDestroy()
-    }
-
-    private suspend fun createAccountFromSms(
-        accountNumber: String,
-        parseResult: TransactionParser.ParseResult,
-        smsMessage: com.kpr.fintrack.data.datasource.sms.SmsMessage
-    ): Account? {
-        return try {
-            // Extract bank name from sender or SMS content
-            val bankName = BankUtils.extractBankNameFromSms(smsMessage.sender, smsMessage.body)
-
-            // Create account name from bank name and last 4 digits
-            val accountName = if (accountNumber.length >= 4) {
-                "$bankName ****${accountNumber.takeLast(4)}"
-            } else {
-                "$bankName Account"
-            }
-
-            val newAccount = Account(
-                name = accountName,
-                accountNumber = accountNumber,
-                bankName = bankName,
-                accountType = Account.AccountType.SAVINGS, // Default to SAVINGS
-                isActive = true,
-                icon = BankUtils.getBankIcon(bankName),
-                color = BankUtils.getBankColor(bankName)
-            )
-
-            val accountId = accountRepository.insertAccount(newAccount)
-            secureLogger.i("INBOX_SCANNER", "Created new account: $accountName with ID: $accountId")
-
-            newAccount.copy(id = accountId)
-        } catch (e: Exception) {
-            secureLogger.e("INBOX_SCANNER", "Failed to create account from SMS", e)
-            null
-        }
     }
 }
