@@ -32,8 +32,7 @@ import java.math.BigDecimal
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun BudgetScreen(
-    viewModel: BudgetViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    viewModel: BudgetViewModel = hiltViewModel(), onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val dialogState by viewModel.dialogState.collectAsState()
@@ -50,30 +49,27 @@ fun BudgetScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Monthly Budgets") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+            TopAppBar(title = { Text("Monthly Budgets") }, navigationIcon = {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
-            )
-        }
-    ) { padding ->
+            })
+        }) { padding ->
         AnimatedContent(
-            targetState = uiState,
-            modifier = Modifier.padding(padding),
-            transitionSpec = {
-                fadeIn(animationSpec = spring(stiffness = 200f)) with
-                        fadeOut(animationSpec = spring(stiffness = 200f))
-            }
-        ) { state ->
+            targetState = uiState, modifier = Modifier.padding(padding), transitionSpec = {
+                fadeIn(animationSpec = spring(stiffness = 200f)) with fadeOut(
+                    animationSpec = spring(
+                        stiffness = 200f
+                    )
+                )
+            }) { state ->
             when (state) {
                 is BudgetUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 }
+
                 is BudgetUiState.Success -> {
                     if (state.categoryBudgetItems.isEmpty()) {
                         EmptyStateMessage(message = "No categories found. Please add a category first.")
@@ -86,10 +82,7 @@ fun BudgetScreen(
                             // 1. Total Budget Card
                             item {
                                 TotalBudgetCard(
-                                    details = state.totalBudgetDetails,
-                                    onClick = {
-                                        viewModel.showEditDialog(null, null, state.totalBudgetDetails)
-                                    }
+                                    details = state.totalBudgetDetails
                                 )
                             }
 
@@ -105,15 +98,11 @@ fun BudgetScreen(
                             // 3. Category Budgets List
                             items(state.categoryBudgetItems, key = { it.category.id }) { item ->
                                 CategoryBudgetCard(
-                                    item = item,
-                                    onClick = {
+                                    item = item, onClick = {
                                         viewModel.showEditDialog(
-                                            item.category.id,
-                                            item.category.name,
-                                            item.budgetDetails
+                                            item.category, item.budgetDetails
                                         )
-                                    }
-                                )
+                                    })
                             }
                         }
                     }
@@ -125,17 +114,14 @@ fun BudgetScreen(
 
 @Composable
 fun TotalBudgetCard(
-    details: BudgetDetails?,
-    onClick: () -> Unit
+    details: BudgetDetails?
 ) {
     val spent = details?.spent ?: BigDecimal.ZERO
     val total = details?.budget?.amount ?: BigDecimal.ZERO
     val progress = details?.progress ?: 0f
 
     Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(2.dp)
+        modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -162,8 +148,7 @@ fun TotalBudgetCard(
                 )
                 Spacer(Modifier.height(8.dp))
                 AnimatedProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier.fillMaxWidth()
+                    progress = progress, modifier = Modifier.fillMaxWidth()
                 )
             } else {
                 Text(
@@ -178,8 +163,7 @@ fun TotalBudgetCard(
 
 @Composable
 fun CategoryBudgetCard(
-    item: CategoryBudgetUiItem,
-    onClick: () -> Unit
+    item: CategoryBudgetUiItem, onClick: () -> Unit
 ) {
     val progress = item.budgetDetails?.progress ?: 0f
 
@@ -189,8 +173,7 @@ fun CategoryBudgetCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             // You can use your existing icon component here
             // Icon(painter = painterResource(id = getIconRes(item.category.icon)), ... )
@@ -218,8 +201,7 @@ fun CategoryBudgetCard(
                     )
                     Spacer(Modifier.height(8.dp))
                     AnimatedProgressIndicator(
-                        progress = progress,
-                        modifier = Modifier.fillMaxWidth()
+                        progress = progress, modifier = Modifier.fillMaxWidth()
                     )
                 } else {
                     Text(
@@ -235,8 +217,7 @@ fun CategoryBudgetCard(
 
 @Composable
 fun AnimatedProgressIndicator(
-    progress: Float,
-    modifier: Modifier = Modifier
+    progress: Float, modifier: Modifier = Modifier
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,

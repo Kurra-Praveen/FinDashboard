@@ -78,14 +78,14 @@ private fun getCategoryColor(index: Int): Color {
     val colors = listOf(
         Color(0xFFFF6B6B), // Red
         Color(0xFF4ECDC4), // Teal
+        Color(0xFFA55EEA) , // Violet
         Color(0xFF45B7D1), // Blue
+        Color(0xFFE17055), // Orange
         Color(0xFF96CEB4), // Green
         Color(0xFFFECA57), // Yellow
         Color(0xFFFF9FF3), // Pink
         Color(0xFF54A0FF), // Light Blue
-        Color(0xFF5F27CD), // Purple
-        Color(0xFFE17055), // Orange
-        Color(0xFFA55EEA)  // Violet
+        Color(0xFF5F27CD) // Purple
     )
     return colors[index % colors.size]
 }

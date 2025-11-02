@@ -27,7 +27,7 @@ interface BudgetRepository {
     /**
      * Saves or updates a budget (either total or category-specific).
      */
-    suspend fun saveBudget(amount: BigDecimal, categoryId: Long?, month: YearMonth)
+    suspend fun saveBudget(amount: BigDecimal, categoryId: Long, month: YearMonth)
 
     /**
      * Deletes a budget.
@@ -43,6 +43,6 @@ interface BudgetRepository {
     /**
      * Gets the raw total budget data for a given month.
      */
-    suspend fun getTotalBudget(month: YearMonth): Budget?
+    //suspend fun getTotalBudget(month: YearMonth): Budget?
 
 }

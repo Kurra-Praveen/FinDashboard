@@ -80,11 +80,11 @@ class BudgetViewModel @Inject constructor(
     fun onSaveBudget(amountString: String) {
         val state = _dialogState.value ?: return
         val amount = amountString.toBigDecimalOrNull() ?: BigDecimal.ZERO
-
+        val categoryId = state.categoryId ?: return
         viewModelScope.launch {
             budgetRepository.saveBudget(
                 amount = amount,
-                categoryId = state.categoryId, // Null for total, ID for category
+                categoryId = categoryId, // Null for total, ID for category
                 month = _currentMonth.value
             )
             _dialogState.value = null // Close dialog
@@ -101,10 +101,10 @@ class BudgetViewModel @Inject constructor(
         }
     }
 
-    fun showEditDialog(categoryId: Long?, categoryName: String?, existingBudget: BudgetDetails?) {
+    fun showEditDialog(category: Category, existingBudget: BudgetDetails?) {
         _dialogState.value = EditBudgetDialogState(
-            categoryId = categoryId,
-            categoryName = categoryName ?: "Total Monthly Budget",
+            categoryId = category.id,
+            categoryName = category.name,
             existingAmount = existingBudget?.budget?.amount,
             budgetId = existingBudget?.budget?.id
         )
@@ -131,7 +131,7 @@ data class CategoryBudgetUiItem(
 )
 
 data class EditBudgetDialogState(
-    val categoryId: Long?, // Null for "Total Budget"
+    val categoryId: Long,
     val categoryName: String,
     val existingAmount: BigDecimal?,
     val budgetId: Long?

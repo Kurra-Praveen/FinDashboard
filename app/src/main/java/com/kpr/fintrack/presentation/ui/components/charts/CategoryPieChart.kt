@@ -1,10 +1,18 @@
 package com.kpr.fintrack.presentation.ui.components.charts
 
+import androidx.compose.animation.Animatable
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,8 +56,8 @@ fun CategoryPieChart(
                             Pie(
                                 label = category.categoryName,
                                 data = category.amount.toDouble(),
-                                color = getCategoryColor(index),
-                                selectedColor = getCategoryColor(index).copy(alpha = 0.7f)
+                                color = hexToColorAlt(category.color),
+                                selectedColor = hexToColorAlt(category.color).copy(alpha = 0.7f)
                             )
                         },
                         onPieClick = { /* Handle pie slice click */ },
@@ -146,4 +154,21 @@ private fun getCategoryColor(index: Int): Color {
         Color(0xFFA55EEA)  // Violet
     )
     return colors[index % colors.size]
+}
+public fun hexToColorAlt(hex: String?): Color {
+    if (hex.isNullOrBlank()) return Color.Unspecified
+
+    val cleanHex = hex.removePrefix("#")
+
+    return try {
+        val colorInt = cleanHex.toInt(16)
+
+        val red = (colorInt shr 16 and 0xFF) / 255f
+        val green = (colorInt shr 8 and 0xFF) / 255f
+        val blue = (colorInt and 0xFF) / 255f
+
+        Color(red, green, blue)
+    } catch (e: NumberFormatException) {
+        Color.Unspecified
+    }
 }

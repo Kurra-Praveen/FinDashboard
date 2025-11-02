@@ -2,6 +2,7 @@ package com.kpr.fintrack.data.repository
 
 
 import com.kpr.fintrack.data.database.dao.BudgetDao
+import com.kpr.fintrack.data.database.dao.TransactionDao
 import com.kpr.fintrack.data.database.dto.CategoryBudgetDetailsDto
 import com.kpr.fintrack.data.database.dto.TotalBudgetDetailsDto
 import com.kpr.fintrack.data.database.entities.BudgetEntity
@@ -13,31 +14,46 @@ import com.kpr.fintrack.utils.extensions.endOfMonth
 import com.kpr.fintrack.utils.extensions.startOfMonth
 import com.kpr.fintrack.utils.extensions.toTimestamp
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.time.YearMonth
 import javax.inject.Inject
 
 class BudgetRepositoryImpl @Inject constructor(
-    private val budgetDao: BudgetDao
+    private val budgetDao: BudgetDao,
+    private val transactionDao: TransactionDao
 ) : BudgetRepository {
 
     private val TAG = "BudgetRepositoryImpl"
 
     override fun getTotalBudgetDetails(month: YearMonth): Flow<BudgetDetails?> {
-        FinTrackLogger.d(TAG, "Fetching total budget details for month: $month")
         val start = month.startOfMonth()
         val end = month.endOfMonth()
         val startTimestamp = month.toTimestamp()
 
-        return try {
-            budgetDao.getTotalBudgetWithProgress(startTimestamp, start, end).map { dto ->
-                FinTrackLogger.d(TAG, "Total budget DTO received: $dto")
-                dto?.toDomainModel(month)
+        val totalLimitFlow: Flow<BigDecimal> = budgetDao.getTotalBudgetLimit(startTimestamp)
+        val totalSpentFlow: Flow<BigDecimal> = transactionDao.getTotalSpendingForDateRange(start, end)
+
+        return combine(totalLimitFlow, totalSpentFlow) { totalLimit, totalSpent ->
+            // If the total limit is zero (meaning no budgets are set),
+            // we can return null to hide the card on the dashboard.
+            if (totalLimit == BigDecimal.ZERO) {
+                null
+            } else {
+                // Create a "dummy" budget object on the fly
+                val budget = Budget(
+                    id = 0, // Not a real entity, so ID is 0
+                    amount = totalLimit,
+                    categoryId = null,
+                    yearMonth = month
+                )
+                // Create the final details object
+                BudgetDetails(
+                    budget = budget,
+                    spent = totalSpent
+                )
             }
-        } catch (e: Exception) {
-            FinTrackLogger.e(TAG, "Error fetching total budget details for month: $month", e)
-            throw e
         }
     }
 
@@ -57,30 +73,18 @@ class BudgetRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun saveBudget(amount: BigDecimal, categoryId: Long?, month: YearMonth) {
-        FinTrackLogger.d(TAG, "Saving budget: amount=$amount, categoryId=$categoryId, month=$month")
+    override suspend fun saveBudget(amount: BigDecimal, categoryId: Long, month: YearMonth) {
         val startTimestamp = month.toTimestamp()
 
-        val existingBudget = if (categoryId != null) {
-            budgetDao.getBudgetForCategory(categoryId, startTimestamp)
-        } else {
-            budgetDao.getTotalBudget(startTimestamp)
-        }
-        FinTrackLogger.d(TAG, "Existing budget found: $existingBudget")
+        val existingBudget = budgetDao.getBudgetForCategory(categoryId, startTimestamp)
 
         val budgetEntity = BudgetEntity(
             id = existingBudget?.id ?: 0,
-            categoryId = categoryId,
+            categoryId = categoryId, // categoryId is now guaranteed to be non-null
             amount = amount,
             startDate = startTimestamp
         )
-        try {
-            budgetDao.upsertBudget(budgetEntity)
-            FinTrackLogger.d(TAG, "Budget upserted successfully: $budgetEntity")
-        } catch (e: Exception) {
-            FinTrackLogger.e(TAG, "Error upserting budget: $budgetEntity", e)
-            throw e
-        }
+        budgetDao.upsertBudget(budgetEntity)
     }
 
     override suspend fun deleteBudget(budgetId: Long) {
@@ -107,33 +111,33 @@ class BudgetRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getTotalBudget(month: YearMonth): Budget? {
-        FinTrackLogger.d(TAG, "Getting total budget for month: $month")
-        return try {
-            budgetDao.getTotalBudget(month.toTimestamp())?.toDomainModel(month).also {
-                FinTrackLogger.d(TAG, "Total budget for month $month: $it")
-            }
-        } catch (e: Exception) {
-            FinTrackLogger.e(TAG, "Error getting total budget for month: $month", e)
-            throw e
-        }
-    }
+//    override suspend fun getTotalBudget(month: YearMonth): Budget? {
+//        FinTrackLogger.d(TAG, "Getting total budget for month: $month")
+//        return try {
+//            budgetDao.getTotalBudget(month.toTimestamp())?.toDomainModel(month).also {
+//                FinTrackLogger.d(TAG, "Total budget for month $month: $it")
+//            }
+//        } catch (e: Exception) {
+//            FinTrackLogger.e(TAG, "Error getting total budget for month: $month", e)
+//            throw e
+//        }
+//    }
 
     // --- Mappers ---
 
-    private fun TotalBudgetDetailsDto.toDomainModel(month: YearMonth): BudgetDetails {
-        val budget = Budget(
-            id = this.budgetId,
-            amount = this.budgetAmount,
-            categoryId = null, // This is the Total budget
-            yearMonth = month
-        )
-        return BudgetDetails(
-            budget = budget,
-            // spentAmount is now non-null from COALESCE, but we use '?:' just in case.
-            spent = this.spentAmount ?: BigDecimal.ZERO
-        )
-    }
+//    private fun TotalBudgetDetailsDto.toDomainModel(month: YearMonth): BudgetDetails {
+//        val budget = Budget(
+//            id = this.budgetId,
+//            amount = this.budgetAmount,
+//            categoryId = null, // This is the Total budget
+//            yearMonth = month
+//        )
+//        return BudgetDetails(
+//            budget = budget,
+//            // spentAmount is now non-null from COALESCE, but we use '?:' just in case.
+//            spent = this.spentAmount ?: BigDecimal.ZERO
+//        )
+//    }
 
     private fun CategoryBudgetDetailsDto.toDomainModel(month: YearMonth): BudgetDetails {
         val budget = Budget(
