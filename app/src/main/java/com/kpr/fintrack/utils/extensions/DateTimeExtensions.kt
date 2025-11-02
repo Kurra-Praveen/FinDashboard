@@ -1,6 +1,7 @@
 package com.kpr.fintrack.utils.extensions
 
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.YearMonth
@@ -24,3 +25,11 @@ fun LocalDateTime.toYearMonth(): YearMonth = YearMonth.of(this.year, this.month)
  fun YearMonth.startOfMonth(): LocalDateTime = this.atDay(1).atStartOfDay()
  fun YearMonth.endOfMonth(): LocalDateTime = this.atEndOfMonth().atTime(23, 59, 59)
  fun YearMonth.toTimestamp(): Long = this.atDay(1).atStartOfDay().toEpochSecond(ZoneOffset.UTC)
+
+fun LocalDateTime.startOfDay(): LocalDateTime {
+    return this.with(LocalTime.MIN) // Sets time to 00:00:00.0
+}
+
+fun LocalDateTime.endOfDay(): LocalDateTime {
+    return this.with(LocalTime.MAX) // Sets time to 23:59:59.999...
+}

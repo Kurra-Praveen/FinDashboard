@@ -2,6 +2,7 @@ package com.kpr.fintrack.presentation.ui.transaction
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -12,9 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +27,7 @@ import com.kpr.fintrack.domain.model.QuickTransactionTemplate
 import com.kpr.fintrack.presentation.ui.components.CategorySelectionBottomSheet
 import com.kpr.fintrack.presentation.ui.components.DateTimePickerDialog
 import java.time.format.DateTimeFormatter
+import androidx.core.graphics.toColorInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,9 +37,11 @@ fun AddTransactionScreen(
     viewModel: AddTransactionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
     val context = LocalContext.current
 
     var showCategorySheet by remember { mutableStateOf(false) }
+    var showAccountSheet by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     // Camera launcher for receipt photos
@@ -195,13 +196,10 @@ fun AddTransactionScreen(
                         )
                     }
                 }
-                
+
                 // Account Selection
-                val accounts by viewModel.accounts.collectAsState()
-                var isAccountDropdownExpanded by remember { mutableStateOf(false) }
-                
                 OutlinedCard(
-                    onClick = { isAccountDropdownExpanded = true },
+                    onClick = { showAccountSheet = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -227,7 +225,11 @@ fun AddTransactionScreen(
                             Text(
                                 text = uiState.formData.account?.name ?: "Select Account",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                color = if (uiState.formData.account == null)
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                else
+                                    MaterialTheme.colorScheme.onSurface
                             )
                         }
 
@@ -235,45 +237,6 @@ fun AddTransactionScreen(
                             Icons.Default.ChevronRight,
                             contentDescription = "Select account",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                
-                DropdownMenu(
-                    expanded = isAccountDropdownExpanded,
-                    onDismissRequest = { isAccountDropdownExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    accounts.forEach { account ->
-                        DropdownMenuItem(
-                            text = { 
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountBalance,
-                                        contentDescription = null,
-                                        tint = account.color?.let { Color(android.graphics.Color.parseColor(it)) }
-                                            ?: MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(account.name)
-                                }
-                            },
-                            onClick = {
-                                viewModel.onAccountChanged(account)
-                                isAccountDropdownExpanded = false
-                            }
-                        )
-                    }
-                    
-                    // Option to clear account selection
-                    if (uiState.formData.account != null) {
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text("Clear Selection") },
-                            onClick = {
-                                viewModel.onAccountChanged(null)
-                                isAccountDropdownExpanded = false
-                            }
                         )
                     }
                 }
@@ -355,6 +318,86 @@ fun AddTransactionScreen(
             )
         }
 
+        // Account Selection Bottom Sheet
+        if (showAccountSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showAccountSheet = false }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Text(
+                        text = "Select Account",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    // Account list
+                    accounts.forEach { account ->
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = account.name,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            },
+                            supportingContent = account.currentBalance?.let { balance ->
+                                { Text("Balance: ₹${balance}") }
+                            },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalance,
+                                    contentDescription = null,
+                                    tint = account.color?.let {
+                                        Color(it.toColorInt())
+                                    } ?: MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            trailingContent = if (uiState.formData.account?.id == account.id) {
+                                {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            } else null,
+                            modifier = Modifier.clickable {
+                                viewModel.onAccountChanged(account)
+                                showAccountSheet = false
+                            }
+                        )
+                    }
+
+                    // Clear selection option
+                    if (uiState.formData.account != null) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        ListItem(
+                            headlineContent = { Text("Clear Selection") },
+                            leadingContent = {
+                                Icon(
+                                    Icons.Default.Clear,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                viewModel.onAccountChanged(null)
+                                showAccountSheet = false
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
+
         // Date Picker Dialog
         if (showDatePicker) {
             DateTimePickerDialog(
@@ -407,9 +450,7 @@ private fun QuickTemplatesSection(
             }
         }
     }
-
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

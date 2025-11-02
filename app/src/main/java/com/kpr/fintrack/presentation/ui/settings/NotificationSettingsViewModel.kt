@@ -2,7 +2,7 @@ package com.kpr.fintrack.presentation.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kpr.fintrack.services.notification.TestNotificationService
+import com.kpr.fintrack.domain.manager.AppNotificationManager
 import com.kpr.fintrack.utils.notification.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,8 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NotificationSettingsViewModel @Inject constructor(
-    private val notificationHelper: NotificationHelper,
-    private val testNotificationService: TestNotificationService
+    private val appNotificationManager: AppNotificationManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NotificationSettingsUiState())
@@ -26,70 +25,70 @@ class NotificationSettingsViewModel @Inject constructor(
 
     fun loadSettings() {
         viewModelScope.launch {
-            val settings = notificationHelper.getNotificationSettings()
-            val systemNotificationsEnabled = notificationHelper.areNotificationsEnabled()
-            
-            _uiState.value = _uiState.value.copy(
-                settings = settings,
-                systemNotificationsEnabled = systemNotificationsEnabled,
-                isLoading = false
-            )
+            // (MODIFIED) Get settings from the manager
+            appNotificationManager.getNotificationSettings().collect { settings ->
+                _uiState.value = _uiState.value.copy(
+                    settings = settings,
+                    systemNotificationsEnabled = appNotificationManager.areNotificationsEnabled(),
+                    isLoading = false
+                )
+            }
         }
     }
 
     fun setDailyNotificationsEnabled(enabled: Boolean) {
-        notificationHelper.setDailySpendingNotificationEnabled(enabled)
-        _uiState.value = _uiState.value.copy(
-            settings = _uiState.value.settings.copy(dailyNotificationsEnabled = enabled)
-        )
+        viewModelScope.launch {
+            appNotificationManager.setDailySpendingNotificationEnabled(enabled)
+            // The flow will update the UI automatically, but we can do it manually for responsiveness
+            _uiState.value = _uiState.value.copy(
+                settings = _uiState.value.settings.copy(dailyNotificationsEnabled = enabled)
+            )
+        }
     }
 
     fun setNotificationTime(time: String) {
-        notificationHelper.setNotificationTimePreference(time)
-        _uiState.value = _uiState.value.copy(
-            settings = _uiState.value.settings.copy(notificationTime = time),
-            timeUpdateMessage = "Notification time updated to $time"
-        )
-        
-        // Clear the message after 3 seconds
         viewModelScope.launch {
+            appNotificationManager.setNotificationTimePreference(time)
+            _uiState.value = _uiState.value.copy(
+                settings = _uiState.value.settings.copy(notificationTime = time),
+                timeUpdateMessage = "Notification time updated to $time"
+            )
+
+            // Clear the message after 3 seconds
             kotlinx.coroutines.delay(3000)
             _uiState.value = _uiState.value.copy(timeUpdateMessage = "")
         }
     }
 
     fun setNotificationFrequency(frequency: String) {
-        notificationHelper.setNotificationFrequencyPreference(frequency)
-        _uiState.value = _uiState.value.copy(
-            settings = _uiState.value.settings.copy(notificationFrequency = frequency)
-        )
+        viewModelScope.launch {
+            appNotificationManager.setNotificationFrequencyPreference(frequency)
+        }
     }
 
     fun setInsightsEnabled(enabled: Boolean) {
-        notificationHelper.setNotificationInsightsPreference(enabled)
-        _uiState.value = _uiState.value.copy(
-            settings = _uiState.value.settings.copy(insightsEnabled = enabled)
-        )
+        viewModelScope.launch {
+            appNotificationManager.setNotificationInsightsPreference(enabled)
+        }
     }
 
     fun setComparisonEnabled(enabled: Boolean) {
-        notificationHelper.setNotificationComparisonPreference(enabled)
-        _uiState.value = _uiState.value.copy(
-            settings = _uiState.value.settings.copy(comparisonEnabled = enabled)
-        )
+        viewModelScope.launch {
+            appNotificationManager.setNotificationComparisonPreference(enabled)
+        }
     }
 
     fun setBudgetAlertsEnabled(enabled: Boolean) {
-        notificationHelper.setNotificationBudgetAlertsPreference(enabled)
-        _uiState.value = _uiState.value.copy(
-            settings = _uiState.value.settings.copy(budgetAlertsEnabled = enabled)
-        )
+        viewModelScope.launch {
+            appNotificationManager.setNotificationBudgetAlertsPreference(enabled)
+        }
     }
     @androidx.annotation.RequiresPermission(android.Manifest.permission.POST_NOTIFICATIONS)
     fun sendTestNotification() {
-        viewModelScope.launch  {
+        viewModelScope.launch {
             try {
-                testNotificationService.sendTestNotification()
+                // (MODIFIED) Call the manager
+                appNotificationManager.showTestNotification()
                 _uiState.value = _uiState.value.copy(
                     testNotificationSent = true,
                     testNotificationMessage = "Test notification sent! Check your notification panel."

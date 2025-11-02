@@ -5,20 +5,18 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.telephony.SmsMessage
-import com.kpr.fintrack.domain.model.Account
+import com.kpr.fintrack.domain.manager.AppNotificationManager
 import com.kpr.fintrack.domain.model.createTransactionFromParseResult
-import com.kpr.fintrack.domain.repository.TransactionRepository
 import com.kpr.fintrack.domain.repository.AccountRepository
-import com.kpr.fintrack.utils.parsing.TransactionParser
+import com.kpr.fintrack.domain.repository.TransactionRepository
+import com.kpr.fintrack.utils.FormatUtils
 import com.kpr.fintrack.utils.logging.SecureLogger
-import com.kpr.fintrack.utils.notification.NotificationHelper
-import com.kpr.fintrack.utils.parsing.BankUtils
 import com.kpr.fintrack.utils.parsing.CategoryMatcher
+import com.kpr.fintrack.utils.parsing.TransactionParser
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -44,6 +42,9 @@ class TransactionSmsReceiver : BroadcastReceiver() {
     @Inject
     lateinit var secureLogger: SecureLogger
 
+    @Inject
+    lateinit var appNotificationManager: AppNotificationManager
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -63,9 +64,10 @@ class TransactionSmsReceiver : BroadcastReceiver() {
 
     private fun processMessageAsync(message: SmsMessage) {
         scope.launch {
+            val messageBody = message.messageBody ?: "" // (NEW) Define for catch block
             try {
                 val parseResult = transactionParser.parseTransaction(
-                    messageBody = message.messageBody,
+                    messageBody = messageBody,
                     sender = message.displayOriginatingAddress ?: "Unknown",
                     timestamp = LocalDateTime.now()
                 )
@@ -94,9 +96,7 @@ class TransactionSmsReceiver : BroadcastReceiver() {
                     val account = parseResult.accountNumber?.let { accountNumber ->
                         try {
                             accountRepository.getOrCreateAccount(
-                                accountNumber,
-                                message.displayOriginatingAddress,
-                                message.messageBody
+                                accountNumber, message.displayOriginatingAddress, messageBody
                             )
                         } catch (e: Exception) {
                             secureLogger.w(
@@ -107,74 +107,36 @@ class TransactionSmsReceiver : BroadcastReceiver() {
                         }
                     }
 
-//                    val transaction = com.kpr.fintrack.domain.model.Transaction(
-//                        amount = parseResult.amount ?: return@launch,
-//                        isDebit = parseResult.isDebit ?: true,
-//                        merchantName = parseResult.merchantName ?: "Unknown",
-//                        description = parseResult.description ?: message.messageBody,
-//                        category = category,
-//                        date = parseResult.extractedDate ?: LocalDateTime.now(),
-//                        upiApp = parseResult.upiApp,
-//                        accountNumber = parseResult.accountNumber,
-//                        referenceId = parseResult.referenceId,
-//                        smsBody = message.messageBody,
-//                        sender = message.displayOriginatingAddress ?: "Unknown",
-//                        confidence = parseResult.confidence,
-//                        account = account
-//                    )
                     val transaction = createTransactionFromParseResult(
                         parseResult,
                         category,
                         account,
-                        message.messageBody,
+                        messageBody,
                         message.displayOriginatingAddress ?: "Unknown"
                     ) ?: return@launch
-                    transactionRepository.insertTransaction(transaction)
+                    // (MODIFIED) Get the new transaction ID
+                    val newTransactionId = transactionRepository.insertTransaction(transaction)
                     secureLogger.i("SMS_RECEIVER", "New transaction detected and saved")
 
-                    // Optionally send notification to user about new transaction
-                    // NotificationHelper.showNewTransactionNotification(context, transaction)
+                    // (NEW) Send SUCCESS notification
+                    appNotificationManager.showTransactionAddedNotification(
+                        transactionId = newTransactionId,
+                        merchantName = transaction.merchantName,
+                        amount = FormatUtils.formatCurrency(transaction.amount)
+                    )
+
+                } else {
+                    // (NEW) Send FAILED notification (low confidence or not financial)
+                    secureLogger.w("SMS_RECEIVER", "Parse failed (low confidence): $messageBody")
+                    appNotificationManager.showTransactionFailedNotification(originalText = messageBody)
                 }
 
             } catch (e: Exception) {
                 secureLogger.e("SMS_RECEIVER", "Error processing SMS", e)
+                if (messageBody.isNotEmpty()) { // Only notify if we have a message to show
+                    appNotificationManager.showTransactionFailedNotification(originalText = messageBody)
+                }
             }
-        }
-    }
-
-    private suspend fun createAccountFromSms(
-        accountNumber: String, parseResult: TransactionParser.ParseResult, message: SmsMessage
-    ): Account? {
-        return try {
-            // Extract bank name from sender or SMS content
-            val bankName = BankUtils.extractBankNameFromSms(
-                message.displayOriginatingAddress ?: "", message.messageBody
-            )
-
-            // Create account name from bank name and last 4 digits
-            val accountName = if (accountNumber.length >= 4) {
-                "$bankName ****${accountNumber.takeLast(4)}"
-            } else {
-                "$bankName Account"
-            }
-
-            val newAccount = Account(
-                name = accountName,
-                accountNumber = accountNumber,
-                bankName = bankName,
-                accountType = Account.AccountType.SAVINGS, // Default to SAVINGS
-                isActive = true,
-                icon = BankUtils.getBankIcon(bankName),
-                color = BankUtils.getBankColor(bankName)
-            )
-
-            val accountId = accountRepository.insertAccount(newAccount)
-            secureLogger.i("SMS_RECEIVER", "Created new account: $accountName with ID: $accountId")
-
-            newAccount.copy(id = accountId)
-        } catch (e: Exception) {
-            secureLogger.e("SMS_RECEIVER", "Failed to create account from SMS", e)
-            null
         }
     }
 }
