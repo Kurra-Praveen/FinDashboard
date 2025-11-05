@@ -36,6 +36,24 @@ interface TransactionDao {
     ): List<TransactionEntity>
 
     @Query("""
+        SELECT COALESCE(SUM(t.amount), '0.0')
+        FROM transactions t
+        WHERE t.isDebit = 1
+        AND t.date BETWEEN :startDate AND :endDate
+        AND t.categoryId IN (
+            -- This subquery finds all categories that have a budget for this month
+            SELECT b.categoryId FROM budget_table b
+            WHERE b.categoryId IS NOT NULL
+            AND b.startDate = :startOfMonthTimestamp
+        )
+    """)
+    fun getTotalBudgetedSpending(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+        startOfMonthTimestamp: Long
+    ): Flow<BigDecimal>
+
+    @Query("""
         SELECT COALESCE(SUM(amount), '0.0') 
         FROM transactions
         WHERE isDebit = 1 

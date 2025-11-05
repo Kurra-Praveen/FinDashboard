@@ -108,6 +108,14 @@ class TransactionRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getTotalBudgetedSpending(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+        startOfMonthTimestamp: Long
+    ): Flow<BigDecimal> {
+        return transactionDao.getTotalBudgetedSpending(startDate, endDate, startOfMonthTimestamp)
+    }
+
     override fun getFilteredTransactions(filter: TransactionFilter): Flow<PagingData<Transaction>> {
         android.util.Log.d("TransactionRepositoryImpl", "getFilteredTransactions called with filter: $filter")
         return Pager(

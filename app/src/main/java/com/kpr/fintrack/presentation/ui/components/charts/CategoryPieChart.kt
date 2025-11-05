@@ -1,18 +1,10 @@
 package com.kpr.fintrack.presentation.ui.components.charts
 
-import androidx.compose.animation.Animatable
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,6 +14,7 @@ import com.kpr.fintrack.domain.model.CategorySpendingData
 import com.kpr.fintrack.utils.extensions.formatCurrency
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.Pie
+import kotlin.random.Random
 
 
 @Composable
@@ -156,7 +149,7 @@ private fun getCategoryColor(index: Int): Color {
     return colors[index % colors.size]
 }
 public fun hexToColorAlt(hex: String?): Color {
-    if (hex.isNullOrBlank()) return Color.Unspecified
+    if (hex.isNullOrBlank()) return Color(Random.nextFloat(), Random.nextFloat(), Random.nextFloat())
 
     val cleanHex = hex.removePrefix("#")
 
@@ -169,6 +162,6 @@ public fun hexToColorAlt(hex: String?): Color {
 
         Color(red, green, blue)
     } catch (e: NumberFormatException) {
-        Color.Unspecified
+        Color(Random.nextFloat(), Random.nextFloat(), Random.nextFloat())
     }
 }

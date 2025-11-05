@@ -33,7 +33,11 @@ class BudgetRepositoryImpl @Inject constructor(
         val startTimestamp = month.toTimestamp()
 
         val totalLimitFlow: Flow<BigDecimal> = budgetDao.getTotalBudgetLimit(startTimestamp)
-        val totalSpentFlow: Flow<BigDecimal> = transactionDao.getTotalSpendingForDateRange(start, end)
+        val totalSpentFlow: Flow<BigDecimal> = transactionDao.getTotalBudgetedSpending(
+            start,
+            end,
+            startTimestamp
+        )
 
         return combine(totalLimitFlow, totalSpentFlow) { totalLimit, totalSpent ->
             // If the total limit is zero (meaning no budgets are set),

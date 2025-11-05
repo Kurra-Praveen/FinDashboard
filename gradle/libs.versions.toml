@@ -30,6 +30,7 @@ coroutines = "1.8.1"
 
 # Charts & Visualization
 composecharts = "0.1.0"
+colorpicker-compose = "1.0.0"
 
 # Permissions
 accompanistPermissions = "0.32.0"
@@ -95,7 +96,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 
 # Charts
 composecharts = { group = "io.github.ehsannarmani", name = "compose-charts", version.ref = "composecharts" }
-
+colorpicker-compose = { group = "com.github.skydoves", name = "colorpicker-compose", version.ref = "colorpicker-compose" }
 # Permissions
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanistPermissions" }
 
