@@ -22,7 +22,7 @@ class TransactionPagingSource(
         return try {
             val entities = transactionDao.getPaginatedTransactions(params.loadSize, page * params.loadSize)
             Log.d("TransactionPagingSource", "loaded ${entities.size} entities for page=$page")
-            val transactions = entities.map { it.toDomainModel(accountDao, categoryDao) }
+            val transactions = entities.map { it.toDomainModel() }
             LoadResult.Page(
                 data = transactions,
                 prevKey = if (page == 0) null else page - 1,

@@ -2,6 +2,7 @@ package com.kpr.fintrack.data.mapper
 
 import com.kpr.fintrack.data.database.dao.AccountDao
 import com.kpr.fintrack.data.database.dao.CategoryDao
+import com.kpr.fintrack.data.database.dto.TransactionWithDetails
 import com.kpr.fintrack.data.database.entities.AccountEntity
 import com.kpr.fintrack.data.database.entities.CategoryEntity
 import com.kpr.fintrack.data.database.entities.TransactionEntity
@@ -122,5 +123,37 @@ fun AccountEntity.toDomainModel(): Account {
         color = color,
         createdAt = createdAt,
         updatedAt = updatedAt
+    )
+}
+
+// NEW AND FAST: This function is non-suspend and has all data ready.
+fun TransactionWithDetails.toDomainModel(): Transaction {
+    // No DB calls here! All data is already loaded.
+    val domainCategory = this.category?.toDomainModel()
+        ?: Category.getDefaultCategories().last() // Fallback
+
+    val domainAccount = this.account?.toDomainModel() // Can be null
+
+    return Transaction(
+        id = this.transaction.id,
+        amount = this.transaction.amount,
+        isDebit = this.transaction.isDebit,
+        merchantName = this.transaction.merchantName,
+        description = this.transaction.description,
+        category = domainCategory, // From the relation
+        date = this.transaction.date,
+        upiApp = null, // TODO: This relation can also be added if needed
+        account = domainAccount, // From the relation
+        accountNumber = this.transaction.accountNumber,
+        referenceId = this.transaction.referenceId,
+        smsBody = this.transaction.smsBody,
+        sender = this.transaction.sender,
+        confidence = this.transaction.confidence,
+        isManuallyVerified = this.transaction.isManuallyVerified,
+        tags = this.transaction.tags.split(",").filter { it.isNotBlank() },
+        createdAt = this.transaction.createdAt,
+        updatedAt = this.transaction.updatedAt,
+        receiptImagePath = this.transaction.receiptImagePath,
+        receiptSource = this.transaction.receiptSource
     )
 }

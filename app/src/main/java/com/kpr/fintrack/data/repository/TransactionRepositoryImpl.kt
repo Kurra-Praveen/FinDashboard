@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -58,7 +59,7 @@ class TransactionRepositoryImpl @Inject constructor(
                 config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                 pagingSourceFactory = { transactionDao.getPaginatedTransactions() }
             ).flow.map { pagingData ->
-                pagingData.map { it.toDomainModel(accountDao, categoryDao) }
+                pagingData.map { it.toDomainModel() }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting paginated transactions: ${e.message}", e)
@@ -73,7 +74,7 @@ class TransactionRepositoryImpl @Inject constructor(
                 config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                 pagingSourceFactory = { transactionDao.getPaginatedTransactionsByAccountId(accountId) }
             ).flow.map { pagingData ->
-                pagingData.map { it.toDomainModel(accountDao, categoryDao) }
+                pagingData.map { it.toDomainModel() }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting paginated transactions for accountId=$accountId: ${e.message}", e)
@@ -133,7 +134,7 @@ class TransactionRepositoryImpl @Inject constructor(
                 )
             }
         ).flow.map { pagingData ->
-            pagingData.map { it.toDomainModel(accountDao, categoryDao) }
+            pagingData.map { it.toDomainModel() }
         }
     }
 
@@ -277,33 +278,29 @@ class TransactionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getCategorySpendingData(startDate: LocalDateTime, endDate: LocalDateTime): List<CategorySpendingData> {
-        val transactions = transactionDao.getTransactionsByDateRange(startDate, endDate).first()
-        val debitTransactions = transactions.filter { it.isDebit }
-        val totalSpent = debitTransactions.sumOf { it.amount }
+        val summaryDtos = transactionDao.getCategorySpendingSummary(startDate, endDate)
 
-        // Load live categories from DB once
-        val categories = categoryDao.getAllCategories().first()
 
-        return debitTransactions
-            .groupBy { it.categoryId }
-            .map { (category, categoryTransactions) ->
-                val categoryAmount = categoryTransactions.sumOf { it.amount }
-                val percentage = if (totalSpent > BigDecimal.ZERO) {
-                    (categoryAmount / totalSpent * BigDecimal(100)).toFloat()
-                } else 0f
+        val totalSpent = summaryDtos.sumOf { it.totalAmount }
+        Log.i("TransactionRepoImpl", "Total spent from $startDate to $endDate is $totalSpent")
 
-                val cat = categories.find { it.id == category }
-
-                CategorySpendingData(
-                    categoryName = cat?.name ?: "Unknown",
-                    categoryIcon = cat?.icon ?: "Unknown",
-                    amount = categoryAmount,
-                    percentage = percentage,
-                    transactionCount = categoryTransactions.size,
-                    color = cat?.color
-                )
-            }
-            .sortedByDescending { it.amount }
+        return summaryDtos.map { dto ->
+            val percentage = if (totalSpent > BigDecimal.ZERO) {
+                dto.totalAmount
+                    .divide(totalSpent, 4, RoundingMode.HALF_UP) // precision fix
+                    .multiply(BigDecimal(100))
+                    .toFloat()
+            } else 0f
+            Log.i("TransactionRepoImpl", "Category ${dto.categoryName} spent ${dto.totalAmount}, which is $percentage% of total")
+            CategorySpendingData(
+                categoryName = dto.categoryName ?: "Unknown",
+                categoryIcon = dto.categoryIcon ?: "❓",
+                amount = dto.totalAmount,
+                percentage = percentage,
+                transactionCount = dto.transactionsCount?:0, // Note: To get this, you'd add COUNT(t.id) to the SQL query
+                color = dto.color
+            )
+        }
     }
 
     override suspend fun getWeeklySpendingData(weeksBack: Int): List<WeeklySpendingData> {
