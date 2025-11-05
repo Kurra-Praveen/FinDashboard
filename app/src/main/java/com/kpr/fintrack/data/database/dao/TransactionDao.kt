@@ -2,6 +2,7 @@ package com.kpr.fintrack.data.database.dao
 
 import androidx.paging.PagingSource
 import androidx.room.*
+import com.kpr.fintrack.data.database.dto.TransactionWithDetails
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
@@ -9,15 +10,15 @@ import java.time.LocalDateTime
 
 @Dao
 interface TransactionDao {
-
+    @Transaction
     @Query("SELECT * FROM transactions ORDER BY date DESC")
-    fun getPaginatedTransactions(): PagingSource<Int, TransactionEntity>
-
+    fun getPaginatedTransactions(): PagingSource<Int, TransactionWithDetails>
+    @Transaction
     @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT :limit OFFSET :offset")
-    suspend fun getPaginatedTransactions(limit: Int, offset: Int): List<TransactionEntity>
-
+    suspend fun getPaginatedTransactions(limit: Int, offset: Int): List<TransactionWithDetails>
+    @Transaction
     @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY date DESC")
-    fun getPaginatedTransactionsByAccountId(accountId: Long): PagingSource<Int, TransactionEntity>
+    fun getPaginatedTransactionsByAccountId(accountId: Long): PagingSource<Int, TransactionWithDetails>
 
     @Query("SELECT * FROM transactions WHERE date BETWEEN :startDate AND :endDate ORDER BY date DESC")
     fun getTransactionsByDateRange(
@@ -63,7 +64,7 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE merchantName LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' ORDER BY date DESC")
     fun searchTransactions(query: String): Flow<List<TransactionEntity>>
-
+    @Transaction
     @Query("""
         SELECT * FROM transactions 
         WHERE (:categoryIds = '' OR categoryId IN (
@@ -97,7 +98,7 @@ interface TransactionDao {
         isDebit: Boolean? = null,
         searchQuery: String? = null,
         sortOrder: String = "date_desc"
-    ): PagingSource<Int, TransactionEntity>
+    ): PagingSource<Int, TransactionWithDetails>
 
     @Query("SELECT SUM(amount) FROM transactions WHERE isDebit = :isDebit AND date BETWEEN :startDate AND :endDate")
     suspend fun getTotalAmountByType(

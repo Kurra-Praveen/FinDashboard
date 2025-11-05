@@ -58,7 +58,7 @@ class TransactionRepositoryImpl @Inject constructor(
                 config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                 pagingSourceFactory = { transactionDao.getPaginatedTransactions() }
             ).flow.map { pagingData ->
-                pagingData.map { it.toDomainModel(accountDao, categoryDao) }
+                pagingData.map { it.toDomainModel() }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting paginated transactions: ${e.message}", e)
@@ -73,7 +73,7 @@ class TransactionRepositoryImpl @Inject constructor(
                 config = PagingConfig(pageSize = 20, enablePlaceholders = false),
                 pagingSourceFactory = { transactionDao.getPaginatedTransactionsByAccountId(accountId) }
             ).flow.map { pagingData ->
-                pagingData.map { it.toDomainModel(accountDao, categoryDao) }
+                pagingData.map { it.toDomainModel() }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting paginated transactions for accountId=$accountId: ${e.message}", e)
@@ -133,7 +133,7 @@ class TransactionRepositoryImpl @Inject constructor(
                 )
             }
         ).flow.map { pagingData ->
-            pagingData.map { it.toDomainModel(accountDao, categoryDao) }
+            pagingData.map { it.toDomainModel() }
         }
     }
 
