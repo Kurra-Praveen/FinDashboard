@@ -2,6 +2,7 @@ package com.kpr.fintrack.data.database.dao
 
 import androidx.paging.PagingSource
 import androidx.room.*
+import com.kpr.fintrack.data.database.dto.CategorySpendingDto
 import com.kpr.fintrack.data.database.dto.TransactionWithDetails
 import com.kpr.fintrack.data.database.entities.TransactionEntity
 import kotlinx.coroutines.flow.Flow
@@ -133,5 +134,27 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
     suspend fun getTransactionById(id: Long): TransactionEntity?
+
+    // Add this new function inside your TransactionDao interface
+
+    @Query("""
+    SELECT 
+        t.categoryId, 
+        c.name as categoryName,
+        c.icon as categoryIcon,
+        c.color,
+        SUM(t.amount) as totalAmount,
+        COUNT(t.id) AS transactionCount
+    FROM transactions AS t
+    LEFT JOIN categories AS c ON t.categoryId = c.id
+    WHERE t.isDebit = 1 
+      AND t.date BETWEEN :startDate AND :endDate
+    GROUP BY t.categoryId
+    ORDER BY totalAmount DESC
+""")
+    suspend fun getCategorySpendingSummary(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<CategorySpendingDto>
 
 }
