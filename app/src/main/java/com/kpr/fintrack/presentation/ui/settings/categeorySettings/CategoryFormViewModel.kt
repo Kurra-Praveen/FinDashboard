@@ -18,7 +18,8 @@ data class CategoryFormUiState(
     val form: CategoryFormData = CategoryFormData(),
     val defaultIcons: List<String> = BankUtils.CategoryIconDefaults.defaultIcons,
     val isLoading: Boolean = false,
-    val isEditMode: Boolean = false
+    val isEditMode: Boolean = false,
+    val isColorPickerVisible: Boolean = false
 )
 
 data class CategoryFormData(
@@ -108,7 +109,7 @@ class CategoryFormViewModel @Inject constructor(
 
         viewModelScope.launch {
             val categoryToSave = Category(
-                id = form.id ?: 0L, // 0L lets Room auto-generate
+                id = form.id ?: 0L,
                 name = form.name.trim(),
                 icon = form.icon,
                 color = form.color,
@@ -120,10 +121,16 @@ class CategoryFormViewModel @Inject constructor(
             } else {
                 transactionRepository.insertCategory(categoryToSave)
             }
-
-            // --- CRITICAL LINK ---
             // Invalidate the cache so the matcher sees the changes
             categoryMatcher.invalidateCache()
         }
+    }
+    // (NEW) Add functions to show/hide the dialog
+    fun showColorPicker() {
+        _uiState.update { it.copy(isColorPickerVisible = true) }
+    }
+
+    fun dismissColorPicker() {
+        _uiState.update { it.copy(isColorPickerVisible = false) }
     }
 }

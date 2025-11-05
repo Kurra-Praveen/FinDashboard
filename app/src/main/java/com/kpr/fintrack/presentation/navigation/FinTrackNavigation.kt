@@ -328,7 +328,9 @@ fun FinTrackNavigation(
                 },
                 onFormStateChanged = viewModel::onFormStateChanged,
                 onKeywordAdded = viewModel::addKeywordToForm,
-                onKeywordRemoved = viewModel::removeKeywordFromForm
+                onKeywordRemoved = viewModel::removeKeywordFromForm,
+                onDismissColorPicker = viewModel::dismissColorPicker,
+                onShowColorPicker = viewModel::showColorPicker
             )
         }
 

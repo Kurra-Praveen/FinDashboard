@@ -57,7 +57,7 @@ interface TransactionRepository {
         endDate: LocalDateTime
     ): AnalyticsSummary
 
-
+    fun getTotalBudgetedSpending(startDate: LocalDateTime, endDate: LocalDateTime, startOfMonthTimestamp: Long): Flow<BigDecimal>
 }
 
 data class TransactionFilter(

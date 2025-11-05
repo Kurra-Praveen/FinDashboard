@@ -65,22 +65,22 @@ class TransactionParser @Inject constructor(
             }
         }
 
-        if (sender.contains("6281577202")|| sender.contains("Tarun", ignoreCase = true) || cleanMessage.contains("AIRTEL", ignoreCase = true)) {
-            bestResult=ParseResult(
-                isFinancialTransaction = true,
-                amount = BigDecimal("1250.75"),
-                isDebit = true,
-                merchantName = "Big Bazaar",
-                description = "Paid to bus Bazaar taxi using Google Pay transport",
-                referenceId = "9934756393",
-                accountNumber = "XXXX1234",
-                upiApp = UpiApp.getDefaultUpiApps().last(),
-                suggestedCategory = Category.getDefaultCategories().last(),
-                confidence = 0.95f,
-                extractedDate = LocalDateTime.now()
-            )
-            android.util.Log.d("TransactionParser", "Message: $cleanMessage, Best Result: $bestResult")
-        }
+//        if (sender.contains("6281577202")|| sender.contains("Tarun", ignoreCase = true) || cleanMessage.contains("AIRTEL", ignoreCase = true)) {
+//            bestResult=ParseResult(
+//                isFinancialTransaction = true,
+//                amount = BigDecimal("1250.75"),
+//                isDebit = true,
+//                merchantName = "Big Bazaar",
+//                description = "Paid to bus Bazaar taxi using Google Pay transport",
+//                referenceId = "9934756393",
+//                accountNumber = "XXXX1234",
+//                upiApp = UpiApp.getDefaultUpiApps().last(),
+//                suggestedCategory = Category.getDefaultCategories().last(),
+//                confidence = 0.95f,
+//                extractedDate = LocalDateTime.now()
+//            )
+//            android.util.Log.d("TransactionParser", "Message: $cleanMessage, Best Result: $bestResult")
+//        }
         return bestResult ?: ParseResult.noMatch()
     }
 
