@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         android.util.Log.d(getString(R.string.tag_main_activity), getString(R.string.log_on_create_called))
         enableEdgeToEdge()
         setContent {
-            FinTrackTheme {
+            com.kpr.fintrack.presentation.theme.FinTrackTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
                         name = stringResource(R.string.greeting_name),

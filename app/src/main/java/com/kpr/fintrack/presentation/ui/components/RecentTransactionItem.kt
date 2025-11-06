@@ -30,6 +30,9 @@ fun RecentTransactionItem(
             .fillMaxWidth()
             .clickable { onClick() }
             .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
