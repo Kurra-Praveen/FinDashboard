@@ -1,5 +1,6 @@
 package com.kpr.fintrack.presentation.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -11,15 +12,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.kpr.fintrack.utils.security.BiometricCapability
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToCategorySettings: () -> Unit,
-    modifier: Modifier = Modifier
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsState()
         android.util.Log.d("SettingsScreen", "Composable entered")
     Scaffold(
         topBar = {
@@ -59,7 +64,14 @@ fun SettingsScreen(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-
+            item {
+                BiometricSettingItem(
+                    state = uiState,
+                    onToggle = { isEnabled ->
+                        viewModel.onBiometricToggled(isEnabled)
+                    }
+                )
+            }
             item {
                 SettingsItem(
                     title = "Categories",
@@ -184,6 +196,60 @@ private fun SettingsItem(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Navigate",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+@Composable
+private fun BiometricSettingItem(
+    state: SettingsUiState,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Fingerprint, // or use appropriate biometric icon
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Unlock with Biometrics",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                val caption = when (state.biometricCapability) {
+                    BiometricCapability.NOT_ENROLLED -> "No biometrics enrolled. Please set up a fingerprint or face unlock in your device settings."
+                    BiometricCapability.UNSUPPORTED -> "Biometric authentication is not supported on this device."
+                    else -> "Use your device's fingerprint or face to unlock the app."
+                }
+
+                Text(
+                    text = caption,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Switch(
+                checked = state.isBiometricEnabled,
+                onCheckedChange = onToggle,
+                enabled = state.biometricCapability == BiometricCapability.READY
             )
         }
     }
