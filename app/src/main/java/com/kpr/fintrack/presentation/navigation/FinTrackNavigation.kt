@@ -15,6 +15,7 @@ import com.kpr.fintrack.presentation.ui.accounts.AccountDetailScreen
 import com.kpr.fintrack.presentation.ui.accounts.AccountFormScreen
 import com.kpr.fintrack.presentation.ui.accounts.AccountsScreen
 import com.kpr.fintrack.presentation.ui.analystics.AnalyticsScreen
+import com.kpr.fintrack.presentation.ui.auth.AuthScreen
 import com.kpr.fintrack.presentation.ui.budget.BudgetScreen
 import com.kpr.fintrack.presentation.ui.dashboard.DashboardScreen
 import com.kpr.fintrack.presentation.ui.settings.categeorySettings.CategoryFormScreen
@@ -85,6 +86,8 @@ sealed class Screen(val route: String) {
         fun createRoute(accountId: Long) = "edit_account/$accountId"
     }
     object NotificationSettings : Screen("notification_settings")
+
+    object Auth : Screen("auth")
 }
 
 @Composable
@@ -94,9 +97,12 @@ fun FinTrackNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Dashboard.route,
+        startDestination = Screen.Auth.route,
         modifier = modifier
     ) {
+        composable(route = Screen.Auth.route) {
+            AuthScreen(navController = navController)
+        }
         composable(Screen.Dashboard.route) {
             DashboardScreen(
                 onNavigateToTransactions = {
