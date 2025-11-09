@@ -49,43 +49,33 @@ abstract class FinTrackDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "fintrack.db"
 
-//        val MIGRATION_4_5 = object : Migration(4, 5) {
-//            override fun migrate(db: SupportSQLiteDatabase) {
-//                // Step 1: Create the table (without the index)
-//                db.execSQL("""
-//                    CREATE TABLE IF NOT EXISTS `budget_table` (
-//                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-//                        `categoryId` INTEGER,
-//                        `amount` TEXT NOT NULL,
-//                        `period` TEXT NOT NULL,
-//                        `startDate` INTEGER NOT NULL,
-//                        FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
-//                    )
-//                """)
-//
-//                // Step 2: Create the unique index that Room expects
-//                db.execSQL("""
-//                    CREATE UNIQUE INDEX IF NOT EXISTS `index_budget_table_categoryId_startDate`
-//                    ON `budget_table` (`categoryId`, `startDate`)
-//                """)
-//            }
-//        }
-
+        /**
+        * Creates an encrypted database instance.
+        * 
+        * SECURITY: Caller MUST verify user authentication (biometric/PIN) before calling this method.
+        * The passphrase should only be retrieved after successful authentication.
+        * 
+        * @param context Application context
+        * @param passphrase Database encryption key (must be obtained after user authentication)
+        * @param coroutineScope Scope for default data population
+        * @return Encrypted database instance
+        */
         fun create(
             context: Context,
             passphrase: ByteArray,
             coroutineScope: CoroutineScope
         ): FinTrackDatabase {
-
-            // Load SQLCipher libraries first
+         
+           require(passphrase.isNotEmpty()) { "Database passphrase cannot be empty" }
+            // Load SQLCipher libraries first-using hardcoded constant to prevent injection
             System.loadLibrary("sqlcipher")
 
             // Create fresh SupportFactory - CRITICAL for avoiding passphrase cleared error
             // Use false to disable automatic passphrase clearing
             val supportFactory = SupportOpenHelperFactory(passphrase, null, false)
-
+           // Room uses SQLite, not XML - no XXE vulnerability
             return Room.databaseBuilder(
-                context,
+                context.applicationContext,
                 FinTrackDatabase::class.java,
                 BuildConfig.DATABASE_NAME
             )
@@ -100,8 +90,6 @@ abstract class FinTrackDatabase : RoomDatabase() {
                         }
                     }
                 })
-                //.addMigrations(Migration_3_4) // Keep existing migrations
-                //.addMigrations(FinTrackDatabase.MIGRATION_4_5)
                 .fallbackToDestructiveMigration() // For development; migrations are provided for 3->4
                 .build()
         }
