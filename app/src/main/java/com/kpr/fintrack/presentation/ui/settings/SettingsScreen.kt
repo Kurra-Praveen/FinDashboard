@@ -25,7 +25,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-        android.util.Log.d("SettingsScreen", "Composable entered")
+    android.util.Log.d("SettingsScreen", "Composable entered")
     Scaffold(
         topBar = {
             TopAppBar(
@@ -77,7 +77,7 @@ fun SettingsScreen(
                     title = "Categories",
                     subtitle = "Manage transaction categories",
                     icon = Icons.Default.Category,
-                    onClick = { onNavigateToCategorySettings()}
+                    onClick = { onNavigateToCategorySettings() }
                 )
             }
 
@@ -200,6 +200,7 @@ private fun SettingsItem(
         }
     }
 }
+
 @Composable
 private fun BiometricSettingItem(
     state: SettingsUiState,
