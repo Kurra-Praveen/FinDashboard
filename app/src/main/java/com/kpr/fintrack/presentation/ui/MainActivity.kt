@@ -1,9 +1,7 @@
 package com.kpr.fintrack.presentation.ui
 
-import android.Manifest
 import android.content.ComponentName
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -21,19 +19,15 @@ import androidx.core.view.WindowCompat
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kpr.fintrack.presentation.navigation.FinTrackNavigation
 import com.kpr.fintrack.presentation.navigation.Screen
 import com.kpr.fintrack.presentation.theme.FinTrackTheme
 import com.kpr.fintrack.presentation.ui.components.BottomNavBar
-import com.kpr.fintrack.presentation.ui.components.PermissionRequestScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -44,37 +38,7 @@ class MainActivity : AppCompatActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val permissionsState = rememberMultiplePermissionsState(
-                        permissions = buildList {
-                            // Base permissions
-                            add(Manifest.permission.RECEIVE_SMS)
-                            add(Manifest.permission.READ_SMS)
-                            add(Manifest.permission.POST_NOTIFICATIONS)
-
-                            // Image permissions based on API level
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                add(Manifest.permission.READ_MEDIA_IMAGES)
-                            } else {
-                                add(Manifest.permission.READ_EXTERNAL_STORAGE)
-                            }
-                        }
-                    )
-
-                    LaunchedEffect(Unit) {
-                        permissionsState.launchMultiplePermissionRequest()
-                    }
-
-                    when {
-                        permissionsState.allPermissionsGranted -> {
-                            FinTrackApp()
-                        }
-                        else -> {
-                            PermissionRequestScreen(
-                                permissionsState = permissionsState,
-                                onPermissionResult = { /* Handle permission result */ }
-                            )
-                        }
-                    }
+                    FinTrackApp()
                 }
             }
         }

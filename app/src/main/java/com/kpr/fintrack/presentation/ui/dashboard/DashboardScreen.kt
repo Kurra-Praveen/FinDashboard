@@ -1,5 +1,7 @@
 package com.kpr.fintrack.presentation.ui.dashboard
 
+import android.Manifest
+import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
@@ -36,12 +38,14 @@ import com.kpr.fintrack.utils.extensions.formatCurrency
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kpr.fintrack.domain.model.BudgetDetails
 import com.kpr.fintrack.presentation.ui.budget.AnimatedProgressIndicator
 import com.kpr.fintrack.utils.FormatUtils
 import com.kpr.fintrack.utils.FinTrackLogger
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun DashboardScreen(
     onNavigateToTransactions: () -> Unit,
@@ -59,7 +63,21 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val categoriesViewModel: CategoriesViewModel = hiltViewModel()
     val categories by categoriesViewModel.categories.collectAsState()
+ val permissionsState = rememberMultiplePermissionsState(
+        permissions = buildList {
+            // Base permissions
+            add(Manifest.permission.RECEIVE_SMS)
+            add(Manifest.permission.READ_SMS)
+            add(Manifest.permission.POST_NOTIFICATIONS)
 
+            // Image permissions based on API level
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.READ_MEDIA_IMAGES)
+            } else {
+                add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }
+    )
     Scaffold(
         topBar = {
             TopAppBar(
@@ -258,7 +276,11 @@ fun DashboardScreen(
                             FinTrackLogger.d(TAG, "Empty state card displayed.")
                             EmptyStateCard(
                                 onStartInboxScan = {
-                                    viewModel.startInboxScan()
+                                     if (permissionsState.allPermissionsGranted) {
+                                        viewModel.startInboxScan()
+                                    } else {
+                                        permissionsState.launchMultiplePermissionRequest()
+                                    }
                                 }
                             )
                         }
