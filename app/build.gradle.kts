@@ -100,6 +100,7 @@ dependencies {
     // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.7.5")
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

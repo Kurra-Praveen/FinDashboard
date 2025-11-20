@@ -28,6 +28,7 @@ import com.kpr.fintrack.presentation.ui.components.CategorySelectionBottomSheet
 import com.kpr.fintrack.presentation.ui.components.DateTimePickerDialog
 import java.time.format.DateTimeFormatter
 import androidx.core.graphics.toColorInt
+import com.kpr.fintrack.presentation.ui.shared.WithCategories
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,362 +65,366 @@ fun AddTransactionScreen(
             onNavigateBack()
         }
     }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = if (transactionId == null) "Add Transaction" else "Edit Transaction",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    TextButton(
-                        onClick = { viewModel.saveTransaction() },
-                        enabled = uiState.isFormValid && !uiState.isSaving
-                    ) {
-                        if (uiState.isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Save")
-                        }
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-        ) {
-
-            // Quick Templates (only for new transactions)
-            if (transactionId == null) {
-                QuickTemplatesSection(
-                    onTemplateClick = { template ->
-                        viewModel.applyTemplate(template)
-                    }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-            }
-
-            // Transaction Form
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-
-                // Transaction Type Selector
-                TransactionTypeSelector(
-                    isDebit = uiState.formData.isDebit,
-                    onTypeChanged = viewModel::onTransactionTypeChanged
-                )
-
-                // Amount Input
-                OutlinedTextField(
-                    value = uiState.formData.amount,
-                    onValueChange = viewModel::onAmountChanged,
-                    label = { Text("Amount") },
-                    placeholder = { Text("0.00") },
-                    leadingIcon = { Text("₹", style = MaterialTheme.typography.titleMedium) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    isError = uiState.amountError != null,
-                    supportingText = uiState.amountError?.let { { Text(it) } },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Merchant Name
-                OutlinedTextField(
-                    value = uiState.formData.merchantName,
-                    onValueChange = viewModel::onMerchantNameChanged,
-                    label = { Text(if (uiState.formData.isDebit) "Paid To" else "Received From") },
-                    placeholder = { Text("Enter merchant name") },
-                    leadingIcon = {
-                        Icon(
-                            if (uiState.formData.isDebit) Icons.Default.Store else Icons.Default.Person,
-                            contentDescription = null
-                        )
-                    },
-                    isError = uiState.merchantError != null,
-                    supportingText = uiState.merchantError?.let { { Text(it) } },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Category Selection
-                OutlinedCard(
-                    onClick = { showCategorySheet = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+    WithCategories {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
                         Text(
-                            text = uiState.formData.category.icon,
-                            style = MaterialTheme.typography.headlineMedium
+                            text = if (transactionId == null) "Add Transaction" else "Edit Transaction",
+                            fontWeight = FontWeight.Bold
                         )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Category",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = uiState.formData.category.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        Icon(
-                            Icons.Default.ChevronRight,
-                            contentDescription = "Select category",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Account Selection
-                OutlinedCard(
-                    onClick = { showAccountSheet = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountBalance,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Account",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = uiState.formData.account?.name ?: "Select Account",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = if (uiState.formData.account == null)
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                else
-                                    MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Icon(
-                            Icons.Default.ChevronRight,
-                            contentDescription = "Select account",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Date Selection
-                OutlinedCard(
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.CalendarToday,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Date & Time",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = uiState.formData.date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy 'at' hh:mm a")),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Edit date",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Description
-                OutlinedTextField(
-                    value = uiState.formData.description,
-                    onValueChange = viewModel::onDescriptionChanged,
-                    label = { Text("Description (Optional)") },
-                    placeholder = { Text("Add a note...") },
-                    minLines = 2,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Receipt Photo Section
-                ReceiptPhotoSection(
-                    imagePath = uiState.formData.receiptImagePath,
-                    onCaptureClick = {
-                        val imageUri = viewModel.createImageUri(context)
-                        cameraLauncher.launch(imageUri)
                     },
-                    onRemoveClick = viewModel::onReceiptRemoved
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        TextButton(
+                            onClick = { viewModel.saveTransaction() },
+                            enabled = uiState.isFormValid && !uiState.isSaving
+                        ) {
+                            if (uiState.isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Save")
+                            }
+                        }
+                    }
                 )
-
-                // Save Button (bottom space)
-                Spacer(modifier = Modifier.height(32.dp))
             }
-        }
+        ) { paddingValues ->
 
-        // Category Selection Bottom Sheet
-        if (showCategorySheet) {
-            CategorySelectionBottomSheet(
-                currentCategory = uiState.formData.category,
-                onCategorySelected = { category ->
-                    viewModel.onCategoryChanged(category)
-                    showCategorySheet = false
-                },
-                onDismiss = { showCategorySheet = false }
-            )
-        }
-
-        // Account Selection Bottom Sheet
-        if (showAccountSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showAccountSheet = false }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                ) {
-                    Text(
-                        text = "Select Account",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+
+                // Quick Templates (only for new transactions)
+                if (transactionId == null) {
+                    QuickTemplatesSection(
+                        onTemplateClick = { template ->
+                            viewModel.applyTemplate(template)
+                        }
                     )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                }
 
-                    // Account list
-                    accounts.forEach { account ->
-                        ListItem(
-                            headlineContent = {
+                // Transaction Form
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+
+                    // Transaction Type Selector
+                    TransactionTypeSelector(
+                        isDebit = uiState.formData.isDebit,
+                        onTypeChanged = viewModel::onTransactionTypeChanged
+                    )
+
+                    // Amount Input
+                    OutlinedTextField(
+                        value = uiState.formData.amount,
+                        onValueChange = viewModel::onAmountChanged,
+                        label = { Text("Amount") },
+                        placeholder = { Text("0.00") },
+                        leadingIcon = { Text("₹", style = MaterialTheme.typography.titleMedium) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        isError = uiState.amountError != null,
+                        supportingText = uiState.amountError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Merchant Name
+                    OutlinedTextField(
+                        value = uiState.formData.merchantName,
+                        onValueChange = viewModel::onMerchantNameChanged,
+                        label = { Text(if (uiState.formData.isDebit) "Paid To" else "Received From") },
+                        placeholder = { Text("Enter merchant name") },
+                        leadingIcon = {
+                            Icon(
+                                if (uiState.formData.isDebit) Icons.Default.Store else Icons.Default.Person,
+                                contentDescription = null
+                            )
+                        },
+                        isError = uiState.merchantError != null,
+                        supportingText = uiState.merchantError?.let { { Text(it) } },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Category Selection
+                    OutlinedCard(
+                        onClick = { showCategorySheet = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = uiState.formData.category.icon,
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = account.name,
+                                    text = "Category",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = uiState.formData.category.name,
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Medium
                                 )
-                            },
-                            supportingContent = account.currentBalance?.let { balance ->
-                                { Text("Balance: ₹${balance}") }
-                            },
-                            leadingContent = {
-                                Icon(
-                                    imageVector = Icons.Default.AccountBalance,
-                                    contentDescription = null,
-                                    tint = account.color?.let {
-                                        Color(it.toColorInt())
-                                    } ?: MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            trailingContent = if (uiState.formData.account?.id == account.id) {
-                                {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            } else null,
-                            modifier = Modifier.clickable {
-                                viewModel.onAccountChanged(account)
-                                showAccountSheet = false
                             }
-                        )
+
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = "Select category",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
-                    // Clear selection option
-                    if (uiState.formData.account != null) {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                        ListItem(
-                            headlineContent = { Text("Clear Selection") },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Default.Clear,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error
+                    // Account Selection
+                    OutlinedCard(
+                        onClick = { showAccountSheet = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalance,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Account",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            },
-                            modifier = Modifier.clickable {
-                                viewModel.onAccountChanged(null)
-                                showAccountSheet = false
+                                Text(
+                                    text = uiState.formData.account?.name ?: "Select Account",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (uiState.formData.account == null)
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    else
+                                        MaterialTheme.colorScheme.onSurface
+                                )
                             }
-                        )
+
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = "Select account",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    // Date Selection
+                    OutlinedCard(
+                        onClick = { showDatePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarToday,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Date & Time",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = uiState.formData.date.format(
+                                        DateTimeFormatter.ofPattern(
+                                            "MMM dd, yyyy 'at' hh:mm a"
+                                        )
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit date",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Description
+                    OutlinedTextField(
+                        value = uiState.formData.description,
+                        onValueChange = viewModel::onDescriptionChanged,
+                        label = { Text("Description (Optional)") },
+                        placeholder = { Text("Add a note...") },
+                        minLines = 2,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Receipt Photo Section
+                    ReceiptPhotoSection(
+                        imagePath = uiState.formData.receiptImagePath,
+                        onCaptureClick = {
+                            val imageUri = viewModel.createImageUri(context)
+                            cameraLauncher.launch(imageUri)
+                        },
+                        onRemoveClick = viewModel::onReceiptRemoved
+                    )
+
+                    // Save Button (bottom space)
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
-        }
 
-        // Date Picker Dialog
-        if (showDatePicker) {
-            DateTimePickerDialog(
-                initialDateTime = uiState.formData.date,
-                onDateTimeSelected = { dateTime ->
-                    viewModel.onDateChanged(dateTime)
-                    showDatePicker = false
-                },
-                onDismiss = { showDatePicker = false }
-            )
-        }
+            // Category Selection Bottom Sheet
+            if (showCategorySheet) {
+                CategorySelectionBottomSheet(
+                    currentCategory = uiState.formData.category,
+                    onCategorySelected = { category ->
+                        viewModel.onCategoryChanged(category)
+                        showCategorySheet = false
+                    },
+                    onDismiss = { showCategorySheet = false }
+                )
+            }
 
-        // Error Snackbar
-        uiState.errorMessage?.let { error ->
-            LaunchedEffect(error) {
-                // Show snackbar - you can implement SnackbarHost if needed
-                android.util.Log.e("AddTransaction", error)
+            // Account Selection Bottom Sheet
+            if (showAccountSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showAccountSheet = false }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = "Select Account",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        // Account list
+                        accounts.forEach { account ->
+                            ListItem(
+                                headlineContent = {
+                                    Text(
+                                        text = account.name,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                supportingContent = account.currentBalance?.let { balance ->
+                                    { Text("Balance: ₹${balance}") }
+                                },
+                                leadingContent = {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountBalance,
+                                        contentDescription = null,
+                                        tint = account.color?.let {
+                                            Color(it.toColorInt())
+                                        } ?: MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingContent = if (uiState.formData.account?.id == account.id) {
+                                    {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else null,
+                                modifier = Modifier.clickable {
+                                    viewModel.onAccountChanged(account)
+                                    showAccountSheet = false
+                                }
+                            )
+                        }
+
+                        // Clear selection option
+                        if (uiState.formData.account != null) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                            ListItem(
+                                headlineContent = { Text("Clear Selection") },
+                                leadingContent = {
+                                    Icon(
+                                        Icons.Default.Clear,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                modifier = Modifier.clickable {
+                                    viewModel.onAccountChanged(null)
+                                    showAccountSheet = false
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+            }
+
+            // Date Picker Dialog
+            if (showDatePicker) {
+                DateTimePickerDialog(
+                    initialDateTime = uiState.formData.date,
+                    onDateTimeSelected = { dateTime ->
+                        viewModel.onDateChanged(dateTime)
+                        showDatePicker = false
+                    },
+                    onDismiss = { showDatePicker = false }
+                )
+            }
+
+            // Error Snackbar
+            uiState.errorMessage?.let { error ->
+                LaunchedEffect(error) {
+                    // Show snackbar - you can implement SnackbarHost if needed
+                    android.util.Log.e("AddTransaction", error)
+                }
             }
         }
     }
 }
-
 @Composable
 private fun QuickTemplatesSection(
     onTemplateClick: (QuickTransactionTemplate) -> Unit

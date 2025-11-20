@@ -20,6 +20,9 @@ import com.kpr.fintrack.presentation.ui.components.AppSearchBar
 import com.kpr.fintrack.presentation.ui.components.FilterBottomSheet
 import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
 import com.kpr.fintrack.presentation.ui.components.SortType
+import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
+import com.kpr.fintrack.presentation.ui.shared.LocalCategories
+import androidx.compose.runtime.CompositionLocalProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +36,10 @@ fun TransactionsScreen(
     var showFilterSheet by remember { mutableStateOf(false) }
     var showSearchBar by remember { mutableStateOf(false) }
     var showSortMenu by remember { mutableStateOf(false) }
+    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    val categories by categoriesViewModel.categories.collectAsState()
 
+    CompositionLocalProvider(LocalCategories provides categories) {
     Scaffold(
         topBar = {
             if (showSearchBar) {
@@ -240,6 +246,7 @@ fun TransactionsScreen(
                 onDismiss = { showFilterSheet = false }
             )
         }
+    }
     }
 }
 

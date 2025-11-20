@@ -31,8 +31,11 @@ import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.presentation.ui.components.SpendingOverviewCard
 import com.kpr.fintrack.presentation.ui.components.CategorySpendingCard
 import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
+import com.kpr.fintrack.presentation.ui.components.CategoryIcon
 import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
+import com.kpr.fintrack.presentation.ui.shared.LocalCategories
 import com.kpr.fintrack.utils.extensions.formatCurrency
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -60,207 +63,221 @@ fun DashboardScreen(
     val categoriesViewModel: CategoriesViewModel = hiltViewModel()
     val categories by categoriesViewModel.categories.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "FinTrack",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToBudgets) {
-                    Icon(
-                        Icons.Rounded.AdsClick,
-                        contentDescription = "Budgets"
-                    )
-                }
-                    IconButton(onClick = onNavigateToAccounts) {
-                        Icon(
-                            imageVector = Icons.Default.AccountBalance,
-                            contentDescription = "Accounts"
-                        )
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
-                        )
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAddTransaction,
-                icon = {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Add transaction"
-                    )
-                },
-                text = { Text("Add") },
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        }
-    ) { paddingValues ->
-
-        when {
-            uiState.isLoading -> {
-                FinTrackLogger.d(TAG, "Dashboard is loading...")
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            uiState.error != null -> {
-                FinTrackLogger.e(TAG, "Dashboard error: ${uiState.error}")
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+    CompositionLocalProvider(LocalCategories provides categories) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
                         Text(
-                            text = "Something went wrong",
-                            style = MaterialTheme.typography.titleMedium
+                            text = "FinTrack",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = uiState.error.toString(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.refresh() }) {
-                            Text("Retry")
+                    },
+                    actions = {
+                        IconButton(onClick = onNavigateToBudgets) {
+                            Icon(
+                                Icons.Rounded.AdsClick,
+                                contentDescription = "Budgets"
+                            )
+                        }
+                        IconButton(onClick = onNavigateToAccounts) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalance,
+                                contentDescription = "Accounts"
+                            )
+                        }
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings"
+                            )
                         }
                     }
-                }
+                )
+            },
+            floatingActionButton = {
+                ExtendedFloatingActionButton(
+                    onClick = onAddTransaction,
+                    icon = {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add transaction"
+                        )
+                    },
+                    text = { Text("Add") },
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             }
+        ) { paddingValues ->
 
-            else -> {
-                FinTrackLogger.d(TAG, "Dashboard content displayed. UI State: $uiState")
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
-                        TimeRangeSelector(
-                            selectedRange = uiState.selectedTimeRange,
-                            onRangeSelected = { viewModel.setTimeRange(it) }
-                        )
+            when {
+                uiState.isLoading -> {
+                    FinTrackLogger.d(TAG, "Dashboard is loading...")
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
+                }
 
-                    item {
-                        SpendingOverviewCard(
-                            monthlySpending = uiState.currentMonthSpending,
-                            monthlyCredit = uiState.currentMonthCredit,
-                            previousMonthComparison = uiState.previousMonthComparison
-                        )
-                    }
-                    item {
-                        // This card will only appear if a total budget is set
-                        // It will use smooth animations to appear and disappear
-                        AnimatedVisibility(
-                            visible = uiState.totalBudgetDetails != null,
-                            enter = fadeIn(animationSpec = spring()) + expandVertically (animationSpec = spring()),
-                            exit = fadeOut(animationSpec = spring()) + shrinkVertically (animationSpec = spring())
+                uiState.error != null -> {
+                    FinTrackLogger.e(TAG, "Dashboard error: ${uiState.error}")
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // We check null again because of the exit animation
-                            uiState.totalBudgetDetails?.let { details ->
-                                FinTrackLogger.d(TAG, "Total budget details: $details")
-                                TotalBudgetSummaryCard(
-                                    details = details,
-                                    modifier = Modifier.padding(top = 16.dp)
-                                )
+                            Text(
+                                text = "Something went wrong",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = uiState.error.toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { viewModel.refresh() }) {
+                                Text("Retry")
                             }
                         }
                     }
-                    item {
-                        FinTrackLogger.d(TAG, "Analytics preview category data: ${uiState.topCategories}")
-                        AnalyticsPreviewCard(
-                            categoryData = uiState.topCategories,
-                            allCategories = categories,
-                            onViewAllAnalytics = onNavigateToAnalytics
-                        )
-                    }
+                }
 
-                    if (uiState.topCategories.isNotEmpty()) {
+                else -> {
+                    FinTrackLogger.d(TAG, "Dashboard content displayed. UI State: $uiState")
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         item {
-                            Text(
-                                text = "Top Categories (${if (uiState.selectedTimeRange == DashboardTimeRange.THIS_MONTH) "This Month" else "Last 30 Days"})",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold
+                            TimeRangeSelector(
+                                selectedRange = uiState.selectedTimeRange,
+                                onRangeSelected = { viewModel.setTimeRange(it) }
                             )
                         }
 
                         item {
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp)
+                            SpendingOverviewCard(
+                                monthlySpending = uiState.currentMonthSpending,
+                                monthlyCredit = uiState.currentMonthCredit,
+                                previousMonthComparison = uiState.previousMonthComparison
+                            )
+                        }
+                        item {
+                            // This card will only appear if a total budget is set
+                            // It will use smooth animations to appear and disappear
+                            AnimatedVisibility(
+                                visible = uiState.totalBudgetDetails != null,
+                                enter = fadeIn(animationSpec = spring()) + expandVertically(
+                                    animationSpec = spring()
+                                ),
+                                exit = fadeOut(animationSpec = spring()) + shrinkVertically(
+                                    animationSpec = spring()
+                                )
                             ) {
-                                items(uiState.topCategories) { categoryData ->
-                                    CategorySpendingCard(
-                                        category = categoryData.category,
-                                        amount = categoryData.amount,
-                                        onClick = {
-                                            // Navigate to category transactions
-                                        }
+                                // We check null again because of the exit animation
+                                uiState.totalBudgetDetails?.let { details ->
+                                    FinTrackLogger.d(TAG, "Total budget details: $details")
+                                    TotalBudgetSummaryCard(
+                                        details = details,
+                                        modifier = Modifier.padding(top = 16.dp)
                                     )
                                 }
                             }
                         }
-                    }
-
-                    if (uiState.recentTransactions.isNotEmpty()) {
                         item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            FinTrackLogger.d(
+                                TAG,
+                                "Analytics preview category data: ${uiState.topCategories}"
+                            )
+                            AnalyticsPreviewCard(
+                                categoryData = uiState.topCategories,
+                                allCategories = categories,
+                                onViewAllAnalytics = onNavigateToAnalytics
+                            )
+                        }
+
+                        if (uiState.topCategories.isNotEmpty()) {
+                            item {
                                 Text(
-                                    text = "Recent Transactions",
+                                    text = "Top Categories (${if (uiState.selectedTimeRange == DashboardTimeRange.THIS_MONTH) "This Month" else "Last 30 Days"})",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.SemiBold
                                 )
+                            }
 
-                                TextButton(onClick = onNavigateToTransactions) {
-                                    Text("View All")
+                            item {
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp)
+                                ) {
+                                    items(uiState.topCategories) { categoryData ->
+                                        CategorySpendingCard(
+                                            category = categoryData.category,
+                                            amount = categoryData.amount,
+                                            onClick = {
+                                                // Navigate to category transactions
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        items(uiState.recentTransactions,key = { transaction -> transaction.id }) { transaction ->
-                            RecentTransactionItem(
-                                transaction = transaction,
-                                onClick = {
-                                    // Navigate to transaction detail
-                                    android.util.Log.d("DashboardScreen", "Recent transaction clicked: ${transaction.id}")
-                                    onTransactionClick(transaction.id)
-                                }
-                            )
-                        }
-                    }
+                        if (uiState.recentTransactions.isNotEmpty()) {
+                            item {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Recent Transactions",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
 
-                    if (uiState.isEmpty) {
-                        item {
-                            FinTrackLogger.d(TAG, "Empty state card displayed.")
-                            EmptyStateCard(
-                                onStartInboxScan = {
-                                    viewModel.startInboxScan()
+                                    TextButton(onClick = onNavigateToTransactions) {
+                                        Text("View All")
+                                    }
                                 }
-                            )
+                            }
+
+                            items(
+                                uiState.recentTransactions,
+                                key = { transaction -> transaction.id }) { transaction ->
+                                RecentTransactionItem(
+                                    transaction = transaction,
+                                    onClick = {
+                                        // Navigate to transaction detail
+                                        android.util.Log.d(
+                                            "DashboardScreen",
+                                            "Recent transaction clicked: ${transaction.id}"
+                                        )
+                                        onTransactionClick(transaction.id)
+                                    }
+                                )
+                            }
+                        }
+
+                        if (uiState.isEmpty) {
+                            item {
+                                FinTrackLogger.d(TAG, "Empty state card displayed.")
+                                EmptyStateCard(
+                                    onStartInboxScan = {
+                                        viewModel.startInboxScan()
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -268,6 +285,8 @@ fun DashboardScreen(
         }
     }
 }
+
+
 @Composable
 private fun TotalBudgetSummaryCard(
     details: BudgetDetails,
@@ -275,7 +294,8 @@ private fun TotalBudgetSummaryCard(
 ) {
     FinTrackLogger.d("TotalBudgetSummaryCard", "Displaying budget details: $details")
     val spent = remember(details.spent) { FormatUtils.formatCurrency(details.spent) }
-    val total = remember(details.budget.amount) { FormatUtils.formatCurrency(details.budget.amount) }
+    val total =
+        remember(details.budget.amount) { FormatUtils.formatCurrency(details.budget.amount) }
     val percentage = (details.progress * 100).toInt()
     val percentageLeft = (100 - percentage).coerceAtLeast(0)
 
@@ -334,6 +354,7 @@ private fun TotalBudgetSummaryCard(
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeRangeSelector(
@@ -360,16 +381,17 @@ private fun TimeRangeSelector(
         }
     }
 }
+
 @Composable
 private fun AnalyticsPreviewCard(
     categoryData: List<CategorySpendingData>,
     onViewAllAnalytics: () -> Unit,
     allCategories: List<Category>,
 ) {
-    FinTrackLogger.d("AnalyticsPreviewCard", "Displaying analytics preview with category data: $categoryData")
-    // Use shared CategoriesViewModel to get live categories
-//    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
-//    val categories by categoriesViewModel.categories.collectAsState()
+    FinTrackLogger.d(
+        "AnalyticsPreviewCard",
+        "Displaying analytics preview with category data: $categoryData"
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -397,17 +419,16 @@ private fun AnalyticsPreviewCard(
 
                 TextButton(
                     onClick = {
-                        android.util.Log.d("Analytics", "View Details clicked") // Debug log
-                        onViewAllAnalytics() // ✅ Call the function with parentheses
+                        android.util.Log.d("Analytics", "View Details clicked")
+                        onViewAllAnalytics()
                     }
-                ){
+                ) {
                     Text("View Details")
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Quick category preview
             if (categoryData.isNotEmpty()) {
                 categoryData.take(3).forEach { category ->
                     Row(
@@ -418,11 +439,12 @@ private fun AnalyticsPreviewCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            //Text(text =  Category.getDefaultCategories().find { x -> x.id==category.category.id}?.icon ?: "Unknown")
                             CategoryIcon(category.category.id)
                             Spacer(modifier = Modifier.width(8.dp))
+
                             Text(
-                                text = allCategories.find { x -> x.id==category.category.id}?.name ?: "Unknown",
+                                text = allCategories.find { x -> x.id == category.category.id }?.name
+                                    ?: "Unknown",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -443,36 +465,7 @@ private fun AnalyticsPreviewCard(
             }
         }
     }
-}
-@Composable
-fun CategoryIcon(categoryId: Long) {
-    // Use shared CategoriesViewModel to get live categories
-    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
-    val categories by categoriesViewModel.categories.collectAsState()
-    val context = LocalContext.current
-    val category = categories.find { it.id == categoryId }
-
-    category?.let {
-        // Try to resolve as drawable first
-        val resId = context.resources.getIdentifier(it.icon, "drawable", context.packageName)
-
-        if (resId != 0) {
-            // ✅ Found drawable → show image
-            Image(
-                painter = painterResource(id = resId),
-                contentDescription = it.name,
-                modifier = Modifier.size(24.dp)
-            )
-        } else {
-            // ❌ Not a drawable → treat it as emoji / text
-            Text(
-                text = it.icon,
-                fontSize = 20.sp,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    } ?: Text("Unknown")
-}
+} // <-- THIS WAS MISSING ⭐
 
 
 @Composable
@@ -517,3 +510,4 @@ private fun EmptyStateCard(
         }
     }
 }
+

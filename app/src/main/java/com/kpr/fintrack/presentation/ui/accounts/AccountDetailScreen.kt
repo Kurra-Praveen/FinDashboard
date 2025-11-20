@@ -19,6 +19,7 @@ import com.kpr.fintrack.presentation.ui.components.AccountSummaryCard
 import com.kpr.fintrack.presentation.ui.components.EmptyStateMessage
 import android.util.Log
 import com.kpr.fintrack.presentation.ui.components.RecentTransactionItem
+import com.kpr.fintrack.presentation.ui.shared.WithCategories
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,127 +38,146 @@ fun AccountDetailScreen(
     val transactions = transactionsFlow.collectAsLazyPagingItems()
 
     LaunchedEffect(accountId) {
-        Log.d("AccountDetailScreen", "LaunchedEffect accountId=$accountId - loading account and transactions")
+        Log.d(
+            "AccountDetailScreen",
+            "LaunchedEffect accountId=$accountId - loading account and transactions"
+        )
         viewModel.loadAccount(accountId)
         viewModel.loadAccountTransactions(accountId)
     }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(uiState.account?.name ?: "Account Details") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+    WithCategories {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(uiState.account?.name ?: "Account Details") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { onEditAccount(accountId) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Account"
+                            )
+                        }
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Account"
+                            )
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = { onEditAccount(accountId) }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Account"
-                        )
-                    }
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Account"
-                        )
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.account == null) {
-                EmptyStateMessage(
-                    message = "Account not found",
-                    subMessage = "The requested account could not be found",
-                    modifier = Modifier.align(Alignment.Center)
                 )
-            } else {
-                when (val refreshState = transactions.loadState.refresh) {
-                    is LoadState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    is LoadState.Error -> {
-                        val error = refreshState.error
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "Error loading transactions",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = error.localizedMessage ?: "An unexpected error occurred",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(onClick = { transactions.retry() }) {
-                                    Text("Retry")
-                                }
-                            }
-                        }
-                    }
-                    is LoadState.NotLoading -> {
-                        if (transactions.itemCount == 0) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                EmptyStateMessage(
-                                    message = "No transactions",
-                                    subMessage = "This account has no transactions yet"
-                                )
-                            }
-                        } else {
-                            LazyColumn(
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else if (uiState.account == null) {
+                    EmptyStateMessage(
+                        message = "Account not found",
+                        subMessage = "The requested account could not be found",
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else {
+                    when (val refreshState = transactions.loadState.refresh) {
+                        is LoadState.Loading -> {
+                            Box(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                contentAlignment = Alignment.Center
                             ) {
-                                item {
-                                    uiState.account?.let { account ->
-                                        AccountSummaryCard(account = account)
+                                CircularProgressIndicator()
+                            }
+                        }
+
+                        is LoadState.Error -> {
+                            val error = refreshState.error
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "Error loading transactions",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = error.localizedMessage
+                                            ?: "An unexpected error occurred",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Button(onClick = { transactions.retry() }) {
+                                        Text("Retry")
                                     }
                                 }
+                            }
+                        }
 
-                                item {
-                                    Text(
-                                        text = "Recent Transactions",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(vertical = 8.dp)
+                        is LoadState.NotLoading -> {
+                            if (transactions.itemCount == 0) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    EmptyStateMessage(
+                                        message = "No transactions",
+                                        subMessage = "This account has no transactions yet"
                                     )
                                 }
-
-                                // Paging items
-                                items(count = transactions.itemCount) { index ->
-                                    val transaction = transactions[index]
-                                    transaction?.let { tx ->
-                                        RecentTransactionItem(transaction = tx, onClick = { onTransactionClick(tx.id) })
-                                    }
-                                }
-
-                                if (transactions.loadState.append is LoadState.Loading) {
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
                                     item {
+                                        uiState.account?.let { account ->
+                                            AccountSummaryCard(account = account)
+                                        }
+                                    }
 
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp), contentAlignment = Alignment.Center
-                                        ) {
-                                            CircularProgressIndicator()
+                                    item {
+                                        Text(
+                                            text = "Recent Transactions",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        )
+                                    }
+
+                                    // Paging items
+                                    items(count = transactions.itemCount) { index ->
+                                        val transaction = transactions[index]
+                                        transaction?.let { tx ->
+                                            RecentTransactionItem(
+                                                transaction = tx,
+                                                onClick = { onTransactionClick(tx.id) })
+                                        }
+                                    }
+
+                                    if (transactions.loadState.append is LoadState.Loading) {
+                                        item {
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                CircularProgressIndicator()
+                                            }
                                         }
                                     }
                                 }
@@ -167,29 +187,29 @@ fun AccountDetailScreen(
                 }
             }
         }
-    }
 
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Account") },
-            text = { Text("Are you sure you want to delete this account? This action cannot be undone.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteAccount()
-                        showDeleteDialog = false
-                        onNavigateBack()
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Account") },
+                text = { Text("Are you sure you want to delete this account? This action cannot be undone.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteAccount()
+                            showDeleteDialog = false
+                            onNavigateBack()
+                        }
+                    ) {
+                        Text("Delete")
                     }
-                ) {
-                    Text("Delete")
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel")
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+            )
+        }
     }
 }

@@ -11,7 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kpr.fintrack.domain.model.Category
-import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
+import com.kpr.fintrack.presentation.ui.components.CategoryIcon
 import com.kpr.fintrack.utils.extensions.formatCurrency
 import java.math.BigDecimal
 

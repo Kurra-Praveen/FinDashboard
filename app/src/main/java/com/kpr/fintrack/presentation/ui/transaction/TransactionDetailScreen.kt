@@ -17,7 +17,10 @@ import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.presentation.theme.CreditColor
 import com.kpr.fintrack.presentation.theme.DebitColor
 import com.kpr.fintrack.presentation.ui.components.CategorySelectionBottomSheet
-import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
+import com.kpr.fintrack.presentation.ui.components.CategoryIcon
+import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
+import com.kpr.fintrack.presentation.ui.shared.LocalCategories
+import androidx.compose.runtime.CompositionLocalProvider
 import com.kpr.fintrack.utils.FinTrackLogger
 import com.kpr.fintrack.utils.image.ReceiptImageProcessor
 import com.kpr.fintrack.utils.extensions.*
@@ -46,6 +49,10 @@ fun TransactionDetailScreen(
         viewModel.loadTransaction(transactionId)
     }
 
+    val categoriesViewModel: CategoriesViewModel = hiltViewModel()
+    val categories by categoriesViewModel.categories.collectAsState()
+
+    CompositionLocalProvider(LocalCategories provides categories) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -189,6 +196,7 @@ fun TransactionDetailScreen(
                 }
             )
         }
+    }
     }
 }
 

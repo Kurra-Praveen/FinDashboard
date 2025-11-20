@@ -13,9 +13,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kpr.fintrack.domain.model.Category
-import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
+import com.kpr.fintrack.presentation.ui.components.CategoryIcon
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
+import com.kpr.fintrack.presentation.ui.shared.LocalCategories
+import androidx.compose.runtime.CompositionLocalProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

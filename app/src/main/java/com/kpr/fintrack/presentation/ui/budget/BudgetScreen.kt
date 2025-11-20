@@ -24,8 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kpr.fintrack.domain.model.BudgetDetails
 import com.kpr.fintrack.domain.model.Category
+import com.kpr.fintrack.presentation.ui.components.CategoryIcon
 import com.kpr.fintrack.presentation.ui.components.EmptyStateMessage
-import com.kpr.fintrack.presentation.ui.dashboard.CategoryIcon
+import com.kpr.fintrack.presentation.ui.shared.WithCategories
 import com.kpr.fintrack.utils.FormatUtils // Assuming you have this for formatting currency
 import java.math.BigDecimal
 
@@ -46,63 +47,67 @@ fun BudgetScreen(
             onDelete = viewModel::onDeleteBudget
         )
     }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Monthly Budgets") }, navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                }
-            })
-        }) { padding ->
-        AnimatedContent(
-            targetState = uiState, modifier = Modifier.padding(padding), transitionSpec = {
-                fadeIn(animationSpec = spring(stiffness = 200f)) with fadeOut(
-                    animationSpec = spring(
-                        stiffness = 200f
-                    )
-                )
-            }) { state ->
-            when (state) {
-                is BudgetUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+    WithCategories {
+        Scaffold(
+            topBar = {
+                TopAppBar(title = { Text("Monthly Budgets") }, navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                }
-
-                is BudgetUiState.Success -> {
-                    if (state.categoryBudgetItems.isEmpty()) {
-                        EmptyStateMessage(message = "No categories found. Please add a category first.")
-                    } else {
-                        LazyColumn(
+                })
+            }) { padding ->
+            AnimatedContent(
+                targetState = uiState, modifier = Modifier.padding(padding), transitionSpec = {
+                    fadeIn(animationSpec = spring(stiffness = 200f)) with fadeOut(
+                        animationSpec = spring(
+                            stiffness = 200f
+                        )
+                    )
+                }) { state ->
+                when (state) {
+                    is BudgetUiState.Loading -> {
+                        Box(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            contentAlignment = Alignment.Center
                         ) {
-                            // 1. Total Budget Card
-                            item {
-                                TotalBudgetCard(
-                                    details = state.totalBudgetDetails
-                                )
-                            }
+                            CircularProgressIndicator()
+                        }
+                    }
 
-                            // 2. Header for Categories
-                            item {
-                                Text(
-                                    text = "Category Budgets",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                                )
-                            }
+                    is BudgetUiState.Success -> {
+                        if (state.categoryBudgetItems.isEmpty()) {
+                            EmptyStateMessage(message = "No categories found. Please add a category first.")
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // 1. Total Budget Card
+                                item {
+                                    TotalBudgetCard(
+                                        details = state.totalBudgetDetails
+                                    )
+                                }
 
-                            // 3. Category Budgets List
-                            items(state.categoryBudgetItems, key = { it.category.id }) { item ->
-                                CategoryBudgetCard(
-                                    item = item, onClick = {
-                                        viewModel.showEditDialog(
-                                            item.category, item.budgetDetails
-                                        )
-                                    })
+                                // 2. Header for Categories
+                                item {
+                                    Text(
+                                        text = "Category Budgets",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                                    )
+                                }
+
+                                // 3. Category Budgets List
+                                items(state.categoryBudgetItems, key = { it.category.id }) { item ->
+                                    CategoryBudgetCard(
+                                        item = item, onClick = {
+                                            viewModel.showEditDialog(
+                                                item.category, item.budgetDetails
+                                            )
+                                        })
+                                }
                             }
                         }
                     }
