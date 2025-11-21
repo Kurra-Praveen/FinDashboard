@@ -446,7 +446,10 @@ private fun QuickTemplatesSection(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(templates) { template ->
+                items(
+                    items = templates,
+                    key = { it.name }
+                ) { template ->
                     QuickTemplateCard(
                         template = template,
                         onClick = { onTemplateClick(template) }

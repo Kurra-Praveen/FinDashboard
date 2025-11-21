@@ -15,17 +15,20 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.YearMonth
 import javax.inject.Inject
-
 import java.time.LocalTime
 import com.kpr.fintrack.utils.FinTrackLogger
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 
 enum class DashboardTimeRange {
     THIS_MONTH,
     LAST_30_DAYS
 }
+
+@Immutable
 data class DashboardUiState(
     val isLoading: Boolean = true,
-    val totalBudgetDetails: BudgetDetails? = null, // This field is correct
+    val totalBudgetDetails: BudgetDetails? = null,
     val selectedTimeRange: DashboardTimeRange = DashboardTimeRange.THIS_MONTH,
     val currentMonthSpending: BigDecimal = BigDecimal.ZERO,
     val currentMonthCredit: BigDecimal = BigDecimal.ZERO,
@@ -36,11 +39,13 @@ data class DashboardUiState(
     val isEmpty: Boolean = false
 )
 
+@Immutable
 data class CategorySpendingData(
     val category: Category,
     val amount: BigDecimal
 )
 
+@Stable
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,

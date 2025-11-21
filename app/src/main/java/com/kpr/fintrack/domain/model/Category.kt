@@ -1,5 +1,8 @@
 package com.kpr.fintrack.domain.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class Category(
     val id: Long = 0,
     val name: String,

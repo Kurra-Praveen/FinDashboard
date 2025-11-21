@@ -22,7 +22,10 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.util.Locale
 import javax.inject.Inject
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 
+@Immutable
 data class AnalyticsUiState(
     val isLoading: Boolean = true,
     val selectedTimeRange: AnalyticsTimeRange = AnalyticsTimeRange.THIS_MONTH,
@@ -35,6 +38,7 @@ enum class AnalyticsTimeRange {
     LAST_30_DAYS
 }
 
+@Stable
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository

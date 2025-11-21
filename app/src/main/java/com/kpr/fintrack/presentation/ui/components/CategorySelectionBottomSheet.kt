@@ -40,12 +40,13 @@ fun CategorySelectionBottomSheet(
         sheetState = bottomSheetState,
         modifier = modifier
     ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        CompositionLocalProvider(LocalCategories provides categories) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
             item {
                 Text(
                     text = "Select Category",
@@ -65,6 +66,7 @@ fun CategorySelectionBottomSheet(
 
             item {
                 Spacer(modifier = Modifier.height(16.dp))
+            }
             }
         }
     }

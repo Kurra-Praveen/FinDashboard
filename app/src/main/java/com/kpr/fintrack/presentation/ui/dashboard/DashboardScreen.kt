@@ -220,7 +220,10 @@ fun DashboardScreen(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     contentPadding = PaddingValues(horizontal = 4.dp)
                                 ) {
-                                    items(uiState.topCategories) { categoryData ->
+                                    items(
+                                        items = uiState.topCategories,
+                                        key = { it.category.id }
+                                    ) { categoryData ->
                                         CategorySpendingCard(
                                             category = categoryData.category,
                                             amount = categoryData.amount,

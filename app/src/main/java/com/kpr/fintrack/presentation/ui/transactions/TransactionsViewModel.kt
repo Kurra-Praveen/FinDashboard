@@ -13,7 +13,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 
+@Immutable
 data class TransactionsUiState(
     val isLoading: Boolean = true,
     val transactions: PagingData<Transaction> = PagingData.empty(),
@@ -25,6 +28,7 @@ data class TransactionsUiState(
     val currentSort: SortType = SortType.DATE_DESC
 )
 
+@Stable
 @HiltViewModel
 class TransactionsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository
