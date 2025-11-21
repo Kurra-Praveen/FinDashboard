@@ -57,7 +57,12 @@ android {
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi"
+            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
+            // Compose Compiler Metrics - Phase 1 Performance Analysis
+            "-P",
+            "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=${project.buildDir}/compose_metrics",
+            "-P",
+            "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=${project.buildDir}/compose_metrics"
         )
     }
 

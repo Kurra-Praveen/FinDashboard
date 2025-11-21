@@ -213,9 +213,13 @@ fun TransactionsScreen(
                         items(transactions.itemCount, key = { index -> transactions.peek(index)?.id ?: index }) { index ->
                             val transaction = transactions[index]
                             transaction?.let {
+                                val onClick = remember(it.id) {
+                                    { onTransactionClick(it.id) }
+                                }
+                                
                                 RecentTransactionItem(
                                     transaction = it,
-                                    onClick = { onTransactionClick(it.id) }
+                                    onClick = onClick
                                 )
                             }
                         }

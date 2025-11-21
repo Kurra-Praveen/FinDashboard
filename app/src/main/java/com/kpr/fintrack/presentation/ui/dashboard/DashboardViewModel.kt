@@ -19,6 +19,7 @@ import java.time.LocalTime
 import com.kpr.fintrack.utils.FinTrackLogger
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import com.kpr.fintrack.utils.FormatUtils
 
 enum class DashboardTimeRange {
     THIS_MONTH,
@@ -37,7 +38,15 @@ data class DashboardUiState(
     val recentTransactions: List<Transaction> = emptyList(),
     val error: String? = null,
     val isEmpty: Boolean = false
-)
+) {
+    // Computed properties for formatted budget values
+   // These are calculated once when the state is created, not on every recomposition
+    val formattedBudgetSpent: String
+        get() = totalBudgetDetails?.spent?.let { FormatUtils.formatCurrency(it) } ?: ""
+    
+    val formattedBudgetTotal: String
+        get() = totalBudgetDetails?.budget?.amount?.let { FormatUtils.formatCurrency(it) } ?: ""
+}
 
 @Immutable
 data class CategorySpendingData(

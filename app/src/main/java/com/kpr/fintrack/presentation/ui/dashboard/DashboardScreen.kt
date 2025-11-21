@@ -189,7 +189,9 @@ fun DashboardScreen(
                                     FinTrackLogger.d(TAG, "Total budget details: $details")
                                     TotalBudgetSummaryCard(
                                         details = details,
-                                        modifier = Modifier.padding(top = 16.dp)
+                                        formattedSpent = uiState.formattedBudgetSpent,
+                                        formattedTotal = uiState.formattedBudgetTotal,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
@@ -258,9 +260,8 @@ fun DashboardScreen(
                             items(
                                 uiState.recentTransactions,
                                 key = { transaction -> transaction.id }) { transaction ->
-                                RecentTransactionItem(
-                                    transaction = transaction,
-                                    onClick = {
+                                val onClick = remember(transaction.id) {
+                                    {
                                         // Navigate to transaction detail
                                         android.util.Log.d(
                                             "DashboardScreen",
@@ -268,6 +269,11 @@ fun DashboardScreen(
                                         )
                                         onTransactionClick(transaction.id)
                                     }
+                                }
+                                
+                                RecentTransactionItem(
+                                    transaction = transaction,
+                                    onClick = onClick
                                 )
                             }
                         }
@@ -293,12 +299,11 @@ fun DashboardScreen(
 @Composable
 private fun TotalBudgetSummaryCard(
     details: BudgetDetails,
+    formattedSpent: String,
+    formattedTotal: String,
     modifier: Modifier = Modifier
 ) {
     FinTrackLogger.d("TotalBudgetSummaryCard", "Displaying budget details: $details")
-    val spent = remember(details.spent) { FormatUtils.formatCurrency(details.spent) }
-    val total =
-        remember(details.budget.amount) { FormatUtils.formatCurrency(details.budget.amount) }
     val percentage = (details.progress * 100).toInt()
     val percentageLeft = (100 - percentage).coerceAtLeast(0)
 
@@ -335,13 +340,13 @@ private fun TotalBudgetSummaryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Spent: $spent",
+                    text = "Spent: $formattedSpent",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = if (details.isOverspent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "of $total",
+                    text = "of $formattedTotal",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
