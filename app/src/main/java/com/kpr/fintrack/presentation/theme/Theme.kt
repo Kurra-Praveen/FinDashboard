@@ -17,64 +17,86 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.kpr.fintrack.ui.theme.Typography
 
-// --- GENERATED PALETTE (LIGHT) ---
+// --- ENHANCED COLOR SCHEME (LIGHT) ---
+// Using Phase 2 enhanced color system with modern, vibrant colors
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF1976D2), // Your FinTrackPrimary
+    // Primary - Vibrant blue for main actions
+    primary = BrandColors.Primary,
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFD4E3FF),
     onPrimaryContainer = Color(0xFF001D36),
-    secondary = Color(0xFF4CAF50), // Your FinTrackSecondary
+    
+    // Secondary - Mint green for secondary actions
+    secondary = BrandColors.Secondary,
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFD0F0C8),
-    onSecondaryContainer = Color(0xFF0D200B),
-    tertiary = Color(0xFF7D5260), // Your Pink40
+    secondaryContainer = Color(0xFFD0F0E8),
+    onSecondaryContainer = Color(0xFF00281C),
+    
+    // Tertiary - Purple for accents
+    tertiary = SemanticColors.Info,
     onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFFFD8E4),
-    onTertiaryContainer = Color(0xFF31111D),
-    error = Color(0xFFE57373), // Your DebitColor
+    tertiaryContainer = SemanticColors.InfoContainer,
+    onTertiaryContainer = SemanticColors.OnInfo,
+    
+    // Error - Warm red for destructive actions
+    error = SemanticColors.Error,
     onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002),
-    background = Color(0xFFFDFBFF),
+    errorContainer = SemanticColors.ErrorContainer,
+    onErrorContainer = SemanticColors.OnError,
+    
+    // Background & Surfaces - Clean, modern hierarchy
+    background = Color(0xFFFAFBFC),
     onBackground = Color(0xFF1A1C1E),
-    surface = Color(0xFFFDFBFF),
+    surface = SurfaceColors.SurfaceLight,
     onSurface = Color(0xFF1A1C1E),
-    surfaceVariant = Color(0xFFDFE2EB), // For Cards
-    onSurfaceVariant = Color(0xFF42474E), // For secondary text
+    surfaceVariant = SurfaceColors.Surface1Light,
+    onSurfaceVariant = Color(0xFF42474E),
     outline = Color(0xFF73777F),
 )
 
-// --- GENERATED PALETTE (DARK) ---
+// --- ENHANCED COLOR SCHEME (DARK) ---
+// Dark theme optimized for OLED and nighttime viewing
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFA5C8FF),
+    // Primary - Lighter blue for dark backgrounds
+    primary = Color(0xFF5C9EFF),
     onPrimary = Color(0xFF003258),
     primaryContainer = Color(0xFF00497D),
     onPrimaryContainer = Color(0xFFD4E3FF),
-    secondary = Color(0xFFB4D4AE),
-    onSecondary = Color(0xFF21361E),
-    secondaryContainer = Color(0xFF374D33),
-    onSecondaryContainer = Color(0xFFD0F0C8),
-    tertiary = Color(0xFFEFB8C8),
-    onTertiary = Color(0xFF492532),
-    tertiaryContainer = Color(0xFF633B48),
-    onTertiaryContainer = Color(0xFFFFD8E4),
-    error = Color(0xFFFFB4AB),
+    
+    // Secondary - Softer mint for dark mode
+    secondary = Color(0xFF7FE8C3),
+    onSecondary = Color(0xFF00381E),
+    secondaryContainer = Color(0xFF005330),
+    onSecondaryContainer = Color(0xFFD0F0E8),
+    
+    // Tertiary - Lighter purple for visibility
+    tertiary = Color(0xFFB794F6),
+    onTertiary = Color(0xFF2A0080),
+    tertiaryContainer = Color(0xFF3D1199),
+    onTertiaryContainer = SemanticColors.InfoContainer,
+    
+    // Error - Softer red for dark mode
+    error = Color(0xFFFF6B7A),
     onError = Color(0xFF690005),
-    errorContainer = Color(0xFFC0392B),
-    onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF1A1C1E),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = SemanticColors.ErrorContainer,
+    
+    // Background & Surfaces - Deep, elevated hierarchy
+    background = Color(0xFF121212),
     onBackground = Color(0xFFE3E2E6),
-    surface = Color(0xFF1A1C1E),
+    surface = SurfaceColors.SurfaceDark,
     onSurface = Color(0xFFE3E2E6),
-    surfaceVariant = Color(0xFF42474E), // For Cards
-    onSurfaceVariant = Color(0xFFC3C6CF), // For secondary text
+    surfaceVariant = SurfaceColors.Surface1Dark,
+    onSurfaceVariant = Color(0xFFC3C6CF),
     outline = Color(0xFF8D9199),
 )
 
 @Composable
 fun FinTrackTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    // DISABLED dynamic colors to showcase our vibrant custom color scheme!
+    // Material You pulls colors from wallpaper - set to true to enable that
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -88,7 +110,6 @@ fun FinTrackTheme(
 
     val view = LocalView.current
     if (!view.isInEditMode) {
-        // --- THIS IS THE CORRECTED SIDEEFFECT ---
         SideEffect {
             val window = (view.context as Activity).window
 
@@ -104,8 +125,6 @@ fun FinTrackTheme(
             insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
-
-    // The Box element is gone, as it's no longer needed.
 
     MaterialTheme(
         colorScheme = colorScheme,
