@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -27,8 +28,10 @@ import com.kpr.fintrack.domain.model.Category
 import com.kpr.fintrack.presentation.ui.components.CategoryIcon
 import com.kpr.fintrack.presentation.ui.components.EmptyStateMessage
 import com.kpr.fintrack.presentation.ui.shared.WithCategories
-import com.kpr.fintrack.utils.FormatUtils // Assuming you have this for formatting currency
+import com.kpr.fintrack.utils.FormatUtils
 import java.math.BigDecimal
+import com.kpr.fintrack.presentation.theme.cardEntranceAnimation
+import com.kpr.fintrack.presentation.theme.listItemEntranceAnimation
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -86,7 +89,8 @@ fun BudgetScreen(
                                 // 1. Total Budget Card
                                 item {
                                     TotalBudgetCard(
-                                        details = state.totalBudgetDetails
+                                        details = state.totalBudgetDetails,
+                                        modifier = Modifier.cardEntranceAnimation(delay = 50)
                                     )
                                 }
 
@@ -100,13 +104,19 @@ fun BudgetScreen(
                                 }
 
                                 // 3. Category Budgets List
-                                items(state.categoryBudgetItems, key = { it.category.id }) { item ->
+                                itemsIndexed(
+                                    items = state.categoryBudgetItems,
+                                    key = { _, item -> item.category.id }
+                                ) { index, item ->
                                     CategoryBudgetCard(
-                                        item = item, onClick = {
+                                        item = item,
+                                        onClick = {
                                             viewModel.showEditDialog(
                                                 item.category, item.budgetDetails
                                             )
-                                        })
+                                        },
+                                        modifier = Modifier.listItemEntranceAnimation(index)
+                                    )
                                 }
                             }
                         }
@@ -119,14 +129,15 @@ fun BudgetScreen(
 
 @Composable
 fun TotalBudgetCard(
-    details: BudgetDetails?
+    details: BudgetDetails?,
+    modifier: Modifier = Modifier
 ) {
     val spent = details?.spent ?: BigDecimal.ZERO
     val total = details?.budget?.amount ?: BigDecimal.ZERO
     val progress = details?.progress ?: 0f
 
     Card(
-        modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)
+        modifier = modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -168,13 +179,15 @@ fun TotalBudgetCard(
 
 @Composable
 fun CategoryBudgetCard(
-    item: CategoryBudgetUiItem, onClick: () -> Unit
+    item: CategoryBudgetUiItem,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val progress = item.budgetDetails?.progress ?: 0f
 
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(

@@ -24,6 +24,8 @@ import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
 import com.kpr.fintrack.presentation.ui.shared.LocalCategories
 import androidx.compose.runtime.CompositionLocalProvider
 
+import com.kpr.fintrack.presentation.theme.listItemEntranceAnimation
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsScreen(
@@ -219,7 +221,8 @@ fun TransactionsScreen(
                                 
                                 RecentTransactionItem(
                                     transaction = it,
-                                    onClick = onClick
+                                    onClick = onClick,
+                                    modifier = Modifier.listItemEntranceAnimation(index)
                                 )
                             }
                         }

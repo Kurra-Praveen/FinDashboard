@@ -123,6 +123,10 @@ dependencies {
     implementation(libs.sqlcipher.android)
     ksp(libs.androidx.room.compiler)
     implementation(libs.sqlcipher.support)
+    //ui
+//    implementation(platform("androidx.compose:compose-bom:2024.10.00"))
+    implementation(libs.androidx.foundation)
+
 
 //// Vico for Charts
 //    implementation(libs.vico.compose)

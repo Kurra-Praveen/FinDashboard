@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import com.kpr.fintrack.domain.model.Transaction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
@@ -43,7 +45,8 @@ import com.kpr.fintrack.domain.model.BudgetDetails
 import com.kpr.fintrack.presentation.ui.budget.AnimatedProgressIndicator
 import com.kpr.fintrack.utils.FormatUtils
 import com.kpr.fintrack.utils.FinTrackLogger
-
+import com.kpr.fintrack.presentation.theme.cardEntranceAnimation
+import com.kpr.fintrack.presentation.theme.listItemEntranceAnimation
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -169,7 +172,8 @@ fun DashboardScreen(
                             SpendingOverviewCard(
                                 monthlySpending = uiState.currentMonthSpending,
                                 monthlyCredit = uiState.currentMonthCredit,
-                                previousMonthComparison = uiState.previousMonthComparison
+                                previousMonthComparison = uiState.previousMonthComparison,
+                                modifier = Modifier.cardEntranceAnimation(delay = 0)
                             )
                         }
                         item {
@@ -191,7 +195,9 @@ fun DashboardScreen(
                                         details = details,
                                         formattedSpent = uiState.formattedBudgetSpent,
                                         formattedTotal = uiState.formattedBudgetTotal,
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .cardEntranceAnimation(delay = 100)
                                     )
                                 }
                             }
@@ -204,7 +210,8 @@ fun DashboardScreen(
                             AnalyticsPreviewCard(
                                 categoryData = uiState.topCategories,
                                 allCategories = categories,
-                                onViewAllAnalytics = onNavigateToAnalytics
+                                onViewAllAnalytics = onNavigateToAnalytics,
+                                modifier = Modifier.cardEntranceAnimation(delay = 200)
                             )
                         }
 
@@ -222,16 +229,17 @@ fun DashboardScreen(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     contentPadding = PaddingValues(horizontal = 4.dp)
                                 ) {
-                                    items(
+                                    itemsIndexed(
                                         items = uiState.topCategories,
-                                        key = { it.category.id }
-                                    ) { categoryData ->
+                                        key = { _, item -> item.category.id }
+                                    ) { index, categoryData ->
                                         CategorySpendingCard(
                                             category = categoryData.category,
                                             amount = categoryData.amount,
                                             onClick = {
                                                 // Navigate to category transactions
-                                            }
+                                            },
+                                            modifier = Modifier.listItemEntranceAnimation(index)
                                         )
                                     }
                                 }
@@ -257,23 +265,16 @@ fun DashboardScreen(
                                 }
                             }
 
-                            items(
-                                uiState.recentTransactions,
-                                key = { transaction -> transaction.id }) { transaction ->
-                                val onClick = remember(transaction.id) {
-                                    {
-                                        // Navigate to transaction detail
-                                        android.util.Log.d(
-                                            "DashboardScreen",
-                                            "Recent transaction clicked: ${transaction.id}"
-                                        )
-                                        onTransactionClick(transaction.id)
-                                    }
-                                }
-                                
+                            itemsIndexed(
+                                items = uiState.recentTransactions,
+                                key = { _, transaction -> transaction.id }
+                            ) { index, transaction ->
                                 RecentTransactionItem(
                                     transaction = transaction,
-                                    onClick = onClick
+                                    onClick = {
+                                        onTransactionClick(transaction.id)
+                                    },
+                                    modifier = Modifier.listItemEntranceAnimation(index)
                                 )
                             }
                         }
@@ -294,8 +295,6 @@ fun DashboardScreen(
         }
     }
 }
-
-
 @Composable
 private fun TotalBudgetSummaryCard(
     details: BudgetDetails,
@@ -395,6 +394,7 @@ private fun AnalyticsPreviewCard(
     categoryData: List<CategorySpendingData>,
     onViewAllAnalytics: () -> Unit,
     allCategories: List<Category>,
+    modifier: Modifier = Modifier
 ) {
     FinTrackLogger.d(
         "AnalyticsPreviewCard",
@@ -402,7 +402,7 @@ private fun AnalyticsPreviewCard(
     )
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
