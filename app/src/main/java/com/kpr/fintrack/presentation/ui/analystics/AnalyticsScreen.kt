@@ -18,6 +18,7 @@ import com.kpr.fintrack.presentation.ui.components.charts.WeeklySpendingChart
 import com.kpr.fintrack.presentation.ui.components.StatCard
 import com.kpr.fintrack.presentation.ui.shared.CategoriesViewModel
 import com.kpr.fintrack.utils.extensions.formatCurrency
+import com.kpr.fintrack.presentation.ui.components.ErrorState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +30,6 @@ fun AnalyticsScreen(
     val categoriesViewModel: CategoriesViewModel = hiltViewModel()
     val allCategories by categoriesViewModel.categories.collectAsState()
 
-    // ✅ Add debug effect to see what's happening
     LaunchedEffect(uiState) {
         Log.d("AnalyticsScreen", "UI State: isLoading=${uiState.isLoading}, error=${uiState.error}, hasData=${uiState.analyticsSummary != null}")
     }
@@ -73,34 +73,22 @@ fun AnalyticsScreen(
 
             uiState.error != null -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Error loading analytics",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = uiState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = {
+                    ErrorState(
+                        title = "Error loading analytics",
+                        message = uiState.error ?: "Unknown error",
+                        onRetry = {
                             Log.d("AnalyticsScreen", "Retry button clicked")
                             viewModel.refresh()
-                        }) {
-                            Text("Retry")
                         }
-                    }
+                    )
                 }
             }
 
-            // ✅ Check for data more explicitly
             uiState.analyticsSummary != null -> {
                 LazyColumn(
                     modifier = Modifier
@@ -158,7 +146,6 @@ fun AnalyticsScreen(
                 }
             }
 
-            // ✅ Add fallback case for no data
             else -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -188,6 +175,7 @@ fun AnalyticsScreen(
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AnalyticsTimeRangeSelector(

@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kpr.fintrack.presentation.ui.components.ErrorState
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kpr.fintrack.domain.model.Transaction
 import com.kpr.fintrack.presentation.theme.CreditColor
@@ -113,27 +114,16 @@ fun TransactionDetailScreen(
 
             uiState.error != null -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Error loading transaction",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = uiState.error.toString(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadTransaction(transactionId) }) {
-                            Text("Retry")
-                        }
-                    }
+                    ErrorState(
+                        title = "Error loading transaction",
+                        message = uiState.error.toString(),
+                        onRetry = { viewModel.loadTransaction(transactionId) }
+                    )
                 }
             }
 

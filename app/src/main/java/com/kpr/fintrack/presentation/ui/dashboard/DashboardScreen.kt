@@ -47,6 +47,8 @@ import com.kpr.fintrack.utils.FormatUtils
 import com.kpr.fintrack.utils.FinTrackLogger
 import com.kpr.fintrack.presentation.theme.cardEntranceAnimation
 import com.kpr.fintrack.presentation.theme.listItemEntranceAnimation
+import com.kpr.fintrack.presentation.ui.components.EmptyState
+import com.kpr.fintrack.presentation.ui.components.ErrorState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -128,27 +130,15 @@ fun DashboardScreen(
                 uiState.error != null -> {
                     FinTrackLogger.e(TAG, "Dashboard error: ${uiState.error}")
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Something went wrong",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = uiState.error.toString(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.refresh() }) {
-                                Text("Retry")
-                            }
-                        }
+                        ErrorState(
+                            message = uiState.error.toString(),
+                            onRetry = { viewModel.refresh() }
+                        )
                     }
                 }
 
@@ -282,10 +272,11 @@ fun DashboardScreen(
                         if (uiState.isEmpty) {
                             item {
                                 FinTrackLogger.d(TAG, "Empty state card displayed.")
-                                EmptyStateCard(
-                                    onStartInboxScan = {
-                                        viewModel.startInboxScan()
-                                    }
+                                EmptyState(
+                                    title = "No Transactions Yet",
+                                    message = "Start by scanning your SMS inbox to import existing transactions, or wait for new SMS messages to be automatically detected.",
+                                    actionLabel = "Scan SMS Inbox",
+                                    onActionClick = { viewModel.startInboxScan() }
                                 )
                             }
                         }
@@ -475,47 +466,4 @@ private fun AnalyticsPreviewCard(
     }
 } // <-- THIS WAS MISSING ⭐
 
-
-@Composable
-private fun EmptyStateCard(
-    onStartInboxScan: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "No Transactions Yet",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Start by scanning your SMS inbox to import existing transactions, or wait for new SMS messages to be automatically detected.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
-                onClick = onStartInboxScan,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Scan SMS Inbox")
-            }
-        }
-    }
-}
 
