@@ -8,19 +8,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kpr.fintrack.domain.model.Category
-
-// A simple (and temporary) UI. You can build this out with
-// icon pickers, color pickers, and a modal bottom sheet for the form.
-
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.runtime.Composable
-
+import com.kpr.fintrack.presentation.ui.components.EmptyState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,8 +49,18 @@ fun CategorySettingsScreen(
                 CircularProgressIndicator()
             }
         } else if (uiState.categories.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No categories found. Add one!")
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                EmptyState(
+                    title = "No Categories",
+                    message = "Add a category to get started organizing your transactions.",
+                    actionLabel = "Add Category",
+                    onActionClick = onAddCategory
+                )
             }
         } else {
             LazyColumn(
@@ -103,5 +109,5 @@ private fun CategoryItem(
         },
         modifier = Modifier.clickable(onClick = onEdit) // Click whole item to edit
     )
-    Divider()
+    HorizontalDivider()
 }

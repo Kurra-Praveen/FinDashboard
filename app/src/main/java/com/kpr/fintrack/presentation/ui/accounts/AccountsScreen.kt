@@ -19,8 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kpr.fintrack.R
 import com.kpr.fintrack.domain.model.Account
-import com.kpr.fintrack.presentation.theme.CreditColor
-import com.kpr.fintrack.presentation.theme.DebitColor
+import com.kpr.fintrack.presentation.theme.TransactionColors
 import com.kpr.fintrack.presentation.ui.components.AccountItem
 import com.kpr.fintrack.presentation.ui.components.EmptyStateMessage
 import com.kpr.fintrack.utils.FormatUtils.formatAsCurrency
@@ -111,7 +110,10 @@ fun MonthlySummaryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp)
+            .padding(bottom = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Column(
             modifier = Modifier
@@ -133,21 +135,21 @@ fun MonthlySummaryCard(
                 MonthlySummaryItem(
                     label = stringResource(id = R.string.inflow),
                     value = totalInflow,
-                    color = CreditColor,
+                    color = TransactionColors.Credit,
                     modifier = Modifier.weight(1f)
                 )
                 
                 MonthlySummaryItem(
                     label = stringResource(id = R.string.outflow),
                     value = totalOutflow,
-                    color = DebitColor,
+                    color = TransactionColors.Debit,
                     modifier = Modifier.weight(1f)
                 )
                 
                 MonthlySummaryItem(
                     label = stringResource(id = R.string.net_flow),
                     value = netFlow,
-                    color = if (netFlow >= BigDecimal.ZERO) CreditColor else DebitColor,
+                    color = if (netFlow >= BigDecimal.ZERO) TransactionColors.Credit else TransactionColors.Debit,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -189,7 +191,10 @@ fun AccountItemWithAnalytics(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        onClick = onClick
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Column(
             modifier = Modifier
@@ -215,19 +220,19 @@ fun AccountItemWithAnalytics(
                     AnalyticsItem(
                         label = stringResource(id = R.string.inflow),
                         value = accountAnalytics.totalInflow,
-                        color = CreditColor,
+                        color = TransactionColors.Credit,
                         modifier = Modifier.weight(1f)
                     )
                     AnalyticsItem(
                         label = stringResource(id = R.string.outflow),
                         value = accountAnalytics.totalOutflow,
-                        color = DebitColor,
+                        color = TransactionColors.Debit,
                         modifier = Modifier.weight(1f)
                     )
                     AnalyticsItem(
                         label = stringResource(id = R.string.net_flow),
                         value = accountAnalytics.netFlow,
-                        color = if (accountAnalytics.isPositive) CreditColor else DebitColor,
+                        color = if (accountAnalytics.isPositive) TransactionColors.Credit else TransactionColors.Debit,
                         modifier = Modifier.weight(1f)
                     )
                 }

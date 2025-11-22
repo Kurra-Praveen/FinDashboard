@@ -31,6 +31,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.window.Dialog
+import com.kpr.fintrack.presentation.theme.TransactionColors
 import java.time.format.DateTimeFormatter
 import java.io.File
 
@@ -347,7 +348,7 @@ private fun TransactionDetailContent(
                     )
                 } else {
                     Text(
-                        text = if (notes.isNotBlank()) notes else "No notes added",
+                        text = notes.ifBlank { "No notes added" },
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (notes.isNotBlank()) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.onSurfaceVariant
@@ -410,9 +411,9 @@ private fun TransactionDetailContent(
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = when {
-                            transaction.confidence >= 0.9f -> CreditColor
+                            transaction.confidence >= 0.9f -> TransactionColors.Credit
                             transaction.confidence >= 0.7f -> MaterialTheme.colorScheme.primary
-                            else -> DebitColor
+                            else -> TransactionColors.Debit
                         }
                     )
                 }
@@ -423,9 +424,9 @@ private fun TransactionDetailContent(
                         .fillMaxWidth()
                         .padding(top = 4.dp),
                     color = when {
-                        transaction.confidence >= 0.9f -> CreditColor
+                        transaction.confidence >= 0.9f -> TransactionColors.Credit
                         transaction.confidence >= 0.7f -> MaterialTheme.colorScheme.primary
-                        else -> DebitColor
+                        else -> TransactionColors.Debit
                     }
                 )
             }
