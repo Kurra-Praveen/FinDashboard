@@ -12,10 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +29,7 @@ import com.kpr.fintrack.utils.FormatUtils
 import java.math.BigDecimal
 import com.kpr.fintrack.presentation.theme.cardEntranceAnimation
 import com.kpr.fintrack.presentation.theme.listItemEntranceAnimation
+import com.kpr.fintrack.presentation.theme.AnimationConstants
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -60,13 +58,13 @@ fun BudgetScreen(
                 })
             }) { padding ->
             AnimatedContent(
-                targetState = uiState, modifier = Modifier.padding(padding), transitionSpec = {
-                    fadeIn(animationSpec = spring(stiffness = 200f)) with fadeOut(
-                        animationSpec = spring(
-                            stiffness = 200f
-                        )
-                    )
-                }) { state ->
+                targetState = uiState,
+                modifier = Modifier.padding(padding),
+                transitionSpec = {
+                    fadeIn(animationSpec = spring(stiffness = AnimationConstants.ScreenTransition.FADE_STIFFNESS)) with
+                            fadeOut(animationSpec = spring(stiffness = AnimationConstants.ScreenTransition.FADE_STIFFNESS))
+                }
+            ) { state ->
                 when (state) {
                     is BudgetUiState.Loading -> {
                         Box(
@@ -90,7 +88,7 @@ fun BudgetScreen(
                                 item {
                                     TotalBudgetCard(
                                         details = state.totalBudgetDetails,
-                                        modifier = Modifier.cardEntranceAnimation(delay = 50)
+                                        modifier = Modifier.cardEntranceAnimation(delay = AnimationConstants.CardEntrance.INITIAL_DELAY_MS)
                                     )
                                 }
 
@@ -193,8 +191,6 @@ fun CategoryBudgetCard(
         Row(
             modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically
         ) {
-            // You can use your existing icon component here
-            // Icon(painter = painterResource(id = getIconRes(item.category.icon)), ... )
             CategoryIcon(item.category.id)
 
             Spacer(Modifier.width(16.dp))
@@ -235,20 +231,41 @@ fun CategoryBudgetCard(
 
 @Composable
 fun AnimatedProgressIndicator(
-    progress: Float, modifier: Modifier = Modifier
+    progress: Float,
+    modifier: Modifier = Modifier
 ) {
+    // State to track the animated progress, starting from 0 for fill animation
+    var targetProgress by remember { mutableStateOf(0f) }
+    
+    // Trigger fill animation on first composition
+    LaunchedEffect(progress) {
+        targetProgress = progress
+    }
+    
     val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = spring(stiffness = 250f),
-        label = "ProgressAnimation"
+        targetValue = targetProgress,
+        animationSpec = spring(
+            dampingRatio = AnimationConstants.BudgetProgress.FILL_DAMPING_RATIO,
+            stiffness = AnimationConstants.BudgetProgress.FILL_STIFFNESS
+        ),
+        label = "ProgressFillAnimation"
     )
+
+    // Calculate color based on actual progress (not animated)
+    val progressColor = when {
+        progress >= 1.0f -> MaterialTheme.colorScheme.error // Overspent (red)
+        progress >= 0.9f -> Color(0xFFFF6B00) // Warning (orange)
+        progress >= 0.7f -> Color(0xFFFFB800) // Caution (amber)
+        else -> MaterialTheme.colorScheme.primary // Good (blue/green)
+    }
 
     LinearProgressIndicator(
         progress = { animatedProgress },
         modifier = modifier
             .height(8.dp)
             .clip(RoundedCornerShape(4.dp)),
-        color = if (progress > 1f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        color = progressColor,
+        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        drawStopIndicator = {}
     )
 }
